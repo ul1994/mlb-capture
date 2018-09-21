@@ -9,6 +9,7 @@ private:
 	m_IDirect3D9Ex* m_pD3DEx = nullptr;
 
 public:
+	static IDirect3DDevice9* device;
 	// TODO: globals declared here?
 	m_IDirect3DDevice9(LPDIRECT3DDEVICE9 pDevice, m_IDirect3D9* pD3D) : ProxyInterface(pDevice), m_pD3D(pD3D)
 	{

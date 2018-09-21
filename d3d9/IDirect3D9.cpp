@@ -112,6 +112,8 @@ HRESULT m_IDirect3D9::CheckDeviceFormatConversion(THIS_ UINT Adapter, D3DDEVTYPE
 	return ProxyInterface->CheckDeviceFormatConversion(Adapter, DeviceType, SourceFormat, TargetFormat);
 }
 
+IDirect3DDevice9* m_IDirect3DDevice9::device = NULL;
+
 HRESULT m_IDirect3D9::CreateDevice(UINT Adapter, D3DDEVTYPE DeviceType, HWND hFocusWindow, DWORD BehaviorFlags, D3DPRESENT_PARAMETERS *pPresentationParameters, IDirect3DDevice9 **ppReturnedDeviceInterface)
 {
 	HRESULT hr = ProxyInterface->CreateDevice(Adapter, DeviceType, hFocusWindow, BehaviorFlags, pPresentationParameters, ppReturnedDeviceInterface);
@@ -119,9 +121,9 @@ HRESULT m_IDirect3D9::CreateDevice(UINT Adapter, D3DDEVTYPE DeviceType, HWND hFo
 	// TODO: Device creation
 	if (SUCCEEDED(hr) && ppReturnedDeviceInterface)
 	{
-		//device = 
 		*ppReturnedDeviceInterface = new m_IDirect3DDevice9(*ppReturnedDeviceInterface, this);
 		LPDIRECT3DDEVICE9 dev = *ppReturnedDeviceInterface;
+		m_IDirect3DDevice9::device = dev;
 		m_Overlay = new Overlay();
 		m_Overlay->Init(dev);
 	}

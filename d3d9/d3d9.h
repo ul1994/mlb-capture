@@ -51,5 +51,4 @@ extern Overlay* m_Overlay;
 #include "RenderManager.h"
 
 extern RenderManager renderManager;
-extern m_IDirect3DDevice9* device;
 

@@ -17,7 +17,6 @@
 #include "d3d9.h"
 
 RenderManager renderManager;
-m_IDirect3DDevice9* device;
 
 HRESULT m_IDirect3DDevice9::QueryInterface(REFIID riid, void** ppvObj)
 {
