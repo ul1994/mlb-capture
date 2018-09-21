@@ -5,6 +5,7 @@
 #include <d3d9.h>
 #include <dxerr.h>
 #include <d3dx9.h>
+#include <fstream>
 #include "..\Common\Wrapper.h"
 #include "..\Common\Logging.h"
 
@@ -48,3 +49,5 @@ typedef HRESULT(WINAPI *Direct3DCreate9ExProc)(UINT, IDirect3D9Ex **);
 extern Overlay* m_Overlay;
 
 #include "RenderManager.h"
+
+extern std::ofstream __log;

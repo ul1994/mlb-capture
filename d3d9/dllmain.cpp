@@ -18,6 +18,7 @@
 
 std::ofstream Log::LOG("d3d9.log");
 
+std::ofstream __log;
 Direct3DShaderValidatorCreate9Proc m_pDirect3DShaderValidatorCreate9;
 PSGPErrorProc m_pPSGPError;
 PSGPSampleTextureProc m_pPSGPSampleTexture;
@@ -65,6 +66,8 @@ bool WINAPI DllMain(HMODULE hModule, DWORD dwReason, LPVOID lpReserved)
 		m_pDirect3DCreate9 = (Direct3DCreate9Proc)GetProcAddress(d3d9dll, "Direct3DCreate9");
 		m_pDirect3DCreate9Ex = (Direct3DCreate9ExProc)GetProcAddress(d3d9dll, "Direct3DCreate9Ex");
 		MessageBox(NULL, L"Launching...", L"STATUS", MB_OK);
+
+		Log() << "Hello world";
 		break;
 
 	case DLL_PROCESS_DETACH:
