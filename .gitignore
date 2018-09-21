@@ -28,3 +28,4 @@ ipch/
 *.sdf
 *.log
 *.txt
+d3d9/d3d9.log
