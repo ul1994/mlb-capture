@@ -595,174 +595,174 @@ void RenderManager::EndFrame()
 //    return (VBuffer + Index);
 //}
 //
-//void RenderManager::ProcessVerticesHardware(RenderInfo &Info, const VertexProcessingOptions &Options)
-//{
-//	StateManager &State = g_Context->Managers.State;
-//	LPDIRECT3DDEVICE9 Device = g_Context->Graphics.Device();
-//
-//	_HardwareProcessedVertices.ReSize(Info.NumVertices);
-//    ProcessedVertex *ProcessedVertices = _HardwareProcessedVertices.CArray();
-//
-//    D3DVIEWPORT9 CurViewport;
-//    Device->GetViewport(&CurViewport);
-//    Matrix4 Viewport = Matrix4::Scaling(Vec3f(1.0f, -1.0f, 1.0f)) *
-//		               Matrix4::Translation(Vec3f(1.0f, 1.0f, 0.0f)) *
-//					   Matrix4::Scaling(Vec3f(CurViewport.Width / 2.0f, CurViewport.Height / 2.0f, 1.0f)) *
-//					   Matrix4::Translation(Vec3f(float(CurViewport.X), float(CurViewport.Y), 0.0f));
-//	
-//	VShader *CurVShader = g_Context->Managers.State.CurVShader;
-//    if(CurVShader == NULL)
-//    {
-//		g_Context->Files.Assert << "No VShader\n";
-//        return;
-//    }
-//    
-//	Matrix4 ObjectToScreen;
-//	if(CurVShader->DeclarationFound(D3DDECLUSAGE_NORMAL))
-//	{
-//	/*	Matrix4 ObjectToCamera;
-//		Matrix4 CameraToProjection;
-//
-//		ObjectToCamera.SetColumn(0, State.VShaderFloatConstants[0]);
-//		ObjectToCamera.SetColumn(1, State.VShaderFloatConstants[1]);
-//		ObjectToCamera.SetColumn(2, State.VShaderFloatConstants[2]);
-//		ObjectToCamera.SetColumn(3, Vec4f(0.0f, 0.0f, 0.0f, 1.0f));
-//
-//		CameraToProjection.SetRow(0, State.VShaderFloatConstants[VShaderConst::ConstFloatRegisterCount - 4]);
-//		CameraToProjection.SetRow(1, State.VShaderFloatConstants[VShaderConst::ConstFloatRegisterCount - 3]);
-//		CameraToProjection.SetRow(2, State.VShaderFloatConstants[VShaderConst::ConstFloatRegisterCount - 2]);
-//		CameraToProjection.SetRow(3, State.VShaderFloatConstants[VShaderConst::ConstFloatRegisterCount - 1]);
-//		ObjectToScreen = ObjectToCamera * CameraToProjection * Viewport;
-//	}
-//	else
-//	{*/
-//		Matrix4 ObjectToProjection;
-//
-//		ObjectToProjection.SetRow(0, State.VShaderFloatConstants[0]);
-//		ObjectToProjection.SetRow(1, State.VShaderFloatConstants[1]);
-//		ObjectToProjection.SetRow(2, State.VShaderFloatConstants[2]);
-//		ObjectToProjection.SetRow(3, State.VShaderFloatConstants[3]);
-//		ObjectToScreen = ObjectToProjection * Viewport;
-//	}
-//
-//	if(g_ReportingEvents)
-//	{
-//		g_Context->Files.CurrentFrameAllEvents << "ObjectToScreen: " << ObjectToScreen.CommaSeparatedStringSingleLine() << endl;
-//		g_Context->Files.CurrentFrameAllEvents << "Viewport: " << Viewport.CommaSeparatedStringSingleLine() << endl;
-//	}
-//	
-//	BYTE *PositionStreamStart = NULL;
-//	UINT PositionStride = 0;
-//
-//	BYTE *Texture0StreamStart = NULL;
-//	UINT Texture0Stride = 0;
-//
-//	BYTE *ColorStreamStart = NULL;
-//	UINT ColorStride = 0;
-//
-//	for(UINT i = 0; i < State.VertexDeclaration.Length(); i++)
-//    {
-//        const D3D9Base::D3DVERTEXELEMENT9 &Decl = State.VertexDeclaration[i];
-//		StreamInfo &Stream = State.VBufferStreams[Decl.Stream];
-//		if(Stream.StreamData == NULL)
-//		{
-//			g_Context->Files.Assert << "Reference to unbound stream\n";
-//			return;
-//		}
-//		if(Decl.Usage == D3DDECLUSAGE_POSITION)
-//		{
-//			PositionStreamStart = (BYTE *)(Stream.StreamData->Buffer.CArray() + Stream.OffsetInBytes + Decl.Offset);
-//			PositionStride = Stream.Stride;
-//		}
-//		if(Decl.Usage == D3DDECLUSAGE_TEXCOORD && Decl.UsageIndex == 0)
-//		{
-//			Texture0StreamStart = (BYTE *)(Stream.StreamData->Buffer.CArray() + Stream.OffsetInBytes + Decl.Offset);
-//			Texture0Stride = Stream.Stride;
-//		}
-//		if(Decl.Usage == D3DDECLUSAGE_COLOR && Decl.UsageIndex == 0)
-//		{
-//			ColorStreamStart = (BYTE *)(Stream.StreamData->Buffer.CArray() + Stream.OffsetInBytes + Decl.Offset);
-//			ColorStride = Stream.Stride;
-//		}
-//    }
-//
-//	if(PositionStreamStart == NULL)
-//	{
-//		g_Context->Files.Assert << "Call has no position\n";
-//		return;
-//	}
-//
-//	for(UINT VertexIndex = 0; VertexIndex < Info.NumVertices; VertexIndex++)
-//	{
-//		ProcessedVertex &CurVertex = ProcessedVertices[VertexIndex];
-//
-//		float *PositionStream = (float *)(PositionStreamStart + VertexIndex * PositionStride);
-//		Vec3f Position(PositionStream[0], PositionStream[1], PositionStream[2]);
-//		CurVertex.TransformedProjectionPos = Vec4f(ObjectToScreen.TransformPoint(Position), 1.0f);
-//		if(Texture0StreamStart != NULL)
-//		{
-//			float *Texture0Stream = (float *)(Texture0StreamStart + VertexIndex * Texture0Stride);
-//			CurVertex.TexCoord = Vec2f(Texture0Stream[0], Texture0Stream[1]);
-//		}
-//		if(ColorStreamStart != NULL)
-//		{
-//			RGBColor *ColorStream = (RGBColor *)(ColorStreamStart + VertexIndex * ColorStride);
-//			CurVertex.Diffuse = ColorStream[0];
-//		}
-//		if(VertexIndex == 0 && g_ReportingEvents)
-//		{
-//			g_Context->Files.CurrentFrameAllEvents << "Position: " << Position.CommaSeparatedString() << endl;
-//		}
-//	}
-//}
-//
-//void RenderManager::ProcessVertices(RenderInfo &Info, const VertexProcessingOptions &Options)
-//{
-//    //ProcessVerticesSoftware(Info, Options);
-//	ProcessVerticesHardware(Info, Options);
-//}
+void RenderManager::ProcessVerticesHardware(RenderInfo &Info)
+{
+	//StateManager &State = g_Context->Managers.State;
+	//LPDIRECT3DDEVICE9 Device = g_Context->Graphics.Device();
+
+	//_HardwareProcessedVertices.ReSize(Info.NumVertices);
+    //ProcessedVertex *ProcessedVertices = _HardwareProcessedVertices.CArray();
+
+ //   D3DVIEWPORT9 CurViewport;
+	//dev->GetViewport(&CurViewport);
+	//Log() << "Process Vertices";
+	//Log() << CurViewport.X << ", " << CurViewport.Y;
+	//Log() << CurViewport.Width << ", " << CurViewport.Height;
+
+    /*Matrix4 Viewport = Matrix4::Scaling(Vec3f(1.0f, -1.0f, 1.0f)) *
+		               Matrix4::Translation(Vec3f(1.0f, 1.0f, 0.0f)) *
+					   Matrix4::Scaling(Vec3f(CurViewport.Width / 2.0f, CurViewport.Height / 2.0f, 1.0f)) *
+					   Matrix4::Translation(Vec3f(float(CurViewport.X), float(CurViewport.Y), 0.0f));
+	
+	VShader *CurVShader = g_Context->Managers.State.CurVShader;
+    if(CurVShader == NULL)
+    {
+		g_Context->Files.Assert << "No VShader\n";
+        return;
+    }
+    
+	Matrix4 ObjectToScreen;
+	if(CurVShader->DeclarationFound(D3DDECLUSAGE_NORMAL))
+	{*/
+	/*	Matrix4 ObjectToCamera;
+		Matrix4 CameraToProjection;
+
+		ObjectToCamera.SetColumn(0, State.VShaderFloatConstants[0]);
+		ObjectToCamera.SetColumn(1, State.VShaderFloatConstants[1]);
+		ObjectToCamera.SetColumn(2, State.VShaderFloatConstants[2]);
+		ObjectToCamera.SetColumn(3, Vec4f(0.0f, 0.0f, 0.0f, 1.0f));
+
+		CameraToProjection.SetRow(0, State.VShaderFloatConstants[VShaderConst::ConstFloatRegisterCount - 4]);
+		CameraToProjection.SetRow(1, State.VShaderFloatConstants[VShaderConst::ConstFloatRegisterCount - 3]);
+		CameraToProjection.SetRow(2, State.VShaderFloatConstants[VShaderConst::ConstFloatRegisterCount - 2]);
+		CameraToProjection.SetRow(3, State.VShaderFloatConstants[VShaderConst::ConstFloatRegisterCount - 1]);
+		ObjectToScreen = ObjectToCamera * CameraToProjection * Viewport;
+	}
+	else
+	{*/
+	/*	Matrix4 ObjectToProjection;
+
+		ObjectToProjection.SetRow(0, State.VShaderFloatConstants[0]);
+		ObjectToProjection.SetRow(1, State.VShaderFloatConstants[1]);
+		ObjectToProjection.SetRow(2, State.VShaderFloatConstants[2]);
+		ObjectToProjection.SetRow(3, State.VShaderFloatConstants[3]);
+		ObjectToScreen = ObjectToProjection * Viewport;
+	}
+
+	if(g_ReportingEvents)
+	{
+		g_Context->Files.CurrentFrameAllEvents << "ObjectToScreen: " << ObjectToScreen.CommaSeparatedStringSingleLine() << endl;
+		g_Context->Files.CurrentFrameAllEvents << "Viewport: " << Viewport.CommaSeparatedStringSingleLine() << endl;
+	}
+	
+	BYTE *PositionStreamStart = NULL;
+	UINT PositionStride = 0;
+
+	BYTE *Texture0StreamStart = NULL;
+	UINT Texture0Stride = 0;
+
+	BYTE *ColorStreamStart = NULL;
+	UINT ColorStride = 0;
+
+	for(UINT i = 0; i < State.VertexDeclaration.Length(); i++)
+    {
+        const D3D9Base::D3DVERTEXELEMENT9 &Decl = State.VertexDeclaration[i];
+		StreamInfo &Stream = State.VBufferStreams[Decl.Stream];
+		if(Stream.StreamData == NULL)
+		{
+			g_Context->Files.Assert << "Reference to unbound stream\n";
+			return;
+		}
+		if(Decl.Usage == D3DDECLUSAGE_POSITION)
+		{
+			PositionStreamStart = (BYTE *)(Stream.StreamData->Buffer.CArray() + Stream.OffsetInBytes + Decl.Offset);
+			PositionStride = Stream.Stride;
+		}
+		if(Decl.Usage == D3DDECLUSAGE_TEXCOORD && Decl.UsageIndex == 0)
+		{
+			Texture0StreamStart = (BYTE *)(Stream.StreamData->Buffer.CArray() + Stream.OffsetInBytes + Decl.Offset);
+			Texture0Stride = Stream.Stride;
+		}
+		if(Decl.Usage == D3DDECLUSAGE_COLOR && Decl.UsageIndex == 0)
+		{
+			ColorStreamStart = (BYTE *)(Stream.StreamData->Buffer.CArray() + Stream.OffsetInBytes + Decl.Offset);
+			ColorStride = Stream.Stride;
+		}
+    }
+
+	if(PositionStreamStart == NULL)
+	{
+		g_Context->Files.Assert << "Call has no position\n";
+		return;
+	}
+
+	for(UINT VertexIndex = 0; VertexIndex < Info.NumVertices; VertexIndex++)
+	{
+		ProcessedVertex &CurVertex = ProcessedVertices[VertexIndex];
+
+		float *PositionStream = (float *)(PositionStreamStart + VertexIndex * PositionStride);
+		Vec3f Position(PositionStream[0], PositionStream[1], PositionStream[2]);
+		CurVertex.TransformedProjectionPos = Vec4f(ObjectToScreen.TransformPoint(Position), 1.0f);
+		if(Texture0StreamStart != NULL)
+		{
+			float *Texture0Stream = (float *)(Texture0StreamStart + VertexIndex * Texture0Stride);
+			CurVertex.TexCoord = Vec2f(Texture0Stream[0], Texture0Stream[1]);
+		}
+		if(ColorStreamStart != NULL)
+		{
+			RGBColor *ColorStream = (RGBColor *)(ColorStreamStart + VertexIndex * ColorStride);
+			CurVertex.Diffuse = ColorStream[0];
+		}
+		if(VertexIndex == 0 && g_ReportingEvents)
+		{
+			g_Context->Files.CurrentFrameAllEvents << "Position: " << Position.CommaSeparatedString() << endl;
+		}
+	}*/
+}
+
+void RenderManager::ProcessVertices(RenderInfo &Info)
+{
+	ProcessVerticesHardware(Info);
+}
 
 //
 // Performs transforms on Info to fill in several fields
 //
 //bool printout = false;
-//void RenderManager::DoTransforms(RenderInfo &Info, const VertexProcessingOptions &Options)
-//{
-//    Info.ScreenBound.Min = Vec2f::Origin;
-//    Info.ScreenBound.Max = Vec2f::Origin;
-//    
-//    if(!Options.FullSimulation)
-//    {
-//        return;
-//    }
-//
-//    ProcessVertices(Info, Options);
-//
-//    const ProcessedVertex *ProcessedVertices = _HardwareProcessedVertices.CArray();
-//
-//    Rectangle2f ScreenBound(Vec2f::Origin, Vec2f::Origin);
-//    for(UINT VertexIndex = 0; VertexIndex < Info.NumVertices; VertexIndex++)
-//    {
-//        const ProcessedVertex &CurVertex = ProcessedVertices[VertexIndex];
-//        const Vec4f &TransformedProjectionPos = CurVertex.TransformedProjectionPos;
-//        Vec2f ScreenPos = Vec2f(CurVertex.TransformedProjectionPos.x, CurVertex.TransformedProjectionPos.y);
-//		/*cout << "========================" << endl;
-//		cout << ScreenPos.x << ", " << ScreenPos.y << endl;*/
-//		if (printout)
-//			g_Context->Files.Thread << "!!! " << ScreenPos.x << ", " << ScreenPos.y;
-//        if(VertexIndex == 0)
-//        {
-//            ScreenBound.Min = ScreenPos;
-//            ScreenBound.Max = ScreenPos;
-//        }
-//        else
-//        {
-//            ScreenBound.Min = Vec2f::Minimize(ScreenBound.Min, ScreenPos);
-//            ScreenBound.Max = Vec2f::Maximize(ScreenBound.Max, ScreenPos);
-//        }
-//    }
-//    Info.ScreenBound = ScreenBound;
-//}
+void RenderManager::DoTransforms(RenderInfo &Info)
+{
+    //Info.ScreenBound.Min = Vec2f::Origin;
+    //Info.ScreenBound.Max = Vec2f::Origin;
+    
+    ProcessVertices(Info);
+
+    //const ProcessedVertex *ProcessedVertices = _HardwareProcessedVertices;
+
+    //Rectangle2f ScreenBound(Vec2f::Origin, Vec2f::Origin);
+	Log() << "DoTransforms " << Info.NumVertices;
+    for(UINT VertexIndex = 0; VertexIndex < Info.NumVertices; VertexIndex++)
+    {
+        //const ProcessedVertex &CurVertex = ProcessedVertices[VertexIndex];
+		//const ProcessedVertex &CurVertex = _HardwareProcessedVertices[VertexIndex];
+  //      const Vec4f &TransformedProjectionPos = CurVertex.TransformedProjectionPos;
+  //      Vec2f ScreenPos = Vec2f(CurVertex.TransformedProjectionPos.x, CurVertex.TransformedProjectionPos.y);
+		///*cout << "========================" << endl;
+		//cout << ScreenPos.x << ", " << ScreenPos.y << endl;*/
+		//if (printout)
+		//	g_Context->Files.Thread << "!!! " << ScreenPos.x << ", " << ScreenPos.y;
+  //      if(VertexIndex == 0)
+  //      {
+  //          ScreenBound.Min = ScreenPos;
+  //          ScreenBound.Max = ScreenPos;
+  //      }
+  //      else
+  //      {
+  //          ScreenBound.Min = Vec2f::Minimize(ScreenBound.Min, ScreenPos);
+  //          ScreenBound.Max = Vec2f::Maximize(ScreenBound.Max, ScreenPos);
+  //      }
+    }
+    //Info.ScreenBound = ScreenBound;
+}
 
 __forceinline UINT VertexCountFromPrimitiveCount(D3DPRIMITIVETYPE PrimitiveType, UINT PrimitiveCount)
 {
@@ -1140,7 +1140,7 @@ bool RenderManager::Draw(RenderInfo &Info)
  //       Options.FullSimulation = true;
  //   }
  //   
- //   DoTransforms(Info, Options);
+    DoTransforms(Info);
 
  //   if(Type0 == RenderGeneric) {
  //       //MessageBox(NULL, "Rendering generic", "INFO", MB_OK);

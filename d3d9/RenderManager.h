@@ -13,9 +13,9 @@ struct RenderInfo
     /*Texture *Texture0;
     Texture *Texture1;
     
-    String Text;
+    String Text;*/
 
-    Rectangle2f ScreenBound;*/
+    //Rectangle2f ScreenBound;
 	//Rectangle2f ScreenBoundTest;
     
     D3DPRIMITIVETYPE PrimitiveType;
@@ -81,10 +81,10 @@ private:
     bool Draw(RenderInfo &Info);
     //void ProcessFont(RenderInfo &Info);
 	//void DoTransforms(RenderInfo &Info, const VertexProcessingOptions &Options);
+	void DoTransforms(RenderInfo &Info);
     
-    //void ProcessVertices(RenderInfo &Info, const VertexProcessingOptions &Options);
-    //void ProcessVerticesSoftware(RenderInfo &Info, const VertexProcessingOptions &Options);
-	//void ProcessVerticesHardware(RenderInfo &Info, const VertexProcessingOptions &Options);
+    void ProcessVertices(RenderInfo &Info);
+	void ProcessVerticesHardware(RenderInfo &Info);
     
     //ProcessedVertex* GetVertexData(RenderInfo &Info, UINT Index, ProcessedVertex *VBuffer);
 
@@ -98,11 +98,11 @@ private:
 
 	static const UINT ScratchTextureCount = 1;
     D3D9Base::LPDIRECT3DTEXTURE9 _ScratchTextures[ScratchTextureCount];
+	*/
+    //std::vector<ProcessedVertex> _HardwareProcessedVertices;
+	//Vector<ProcessedVertex> _HardwareProcessedVerticesTest;
 
-    Vector<ProcessedVertex> _HardwareProcessedVertices;
-	Vector<ProcessedVertex> _HardwareProcessedVerticesTest;
-
-    D3D9Base::LPDIRECT3DVERTEXDECLARATION9 _ProcessedVerticesDeclaration;*/
+    //D3D9Base::LPDIRECT3DVERTEXDECLARATION9 _ProcessedVerticesDeclaration;
 
 //#ifdef USE_WMF
 //    VideoCompressor _Compressor;

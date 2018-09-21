@@ -50,4 +50,6 @@ extern Overlay* m_Overlay;
 
 #include "RenderManager.h"
 
-extern std::ofstream __log;
+extern RenderManager renderManager;
+extern m_IDirect3DDevice9* device;
+

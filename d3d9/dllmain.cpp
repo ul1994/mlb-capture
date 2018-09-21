@@ -35,6 +35,9 @@ Direct3D9EnableMaximizedWindowedModeShimProc m_pDirect3D9EnableMaximizedWindowed
 Direct3DCreate9Proc m_pDirect3DCreate9;
 Direct3DCreate9ExProc m_pDirect3DCreate9Ex;
 
+
+Overlay* m_Overlay = NULL;
+
 bool WINAPI DllMain(HMODULE hModule, DWORD dwReason, LPVOID lpReserved)
 {
 	static HMODULE d3d9dll = nullptr;
