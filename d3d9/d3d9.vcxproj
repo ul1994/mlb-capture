@@ -42,6 +42,8 @@
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <LinkIncremental>true</LinkIncremental>
+    <IncludePath>$(DXSDK_DIR)Include;$(IncludePath)</IncludePath>
+    <LibraryPath>$(DXSDK_DIR)Lib\x86;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <LinkIncremental>false</LinkIncremental>
@@ -57,7 +59,11 @@
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <ModuleDefinitionFile>d3d9.def</ModuleDefinitionFile>
+      <AdditionalDependencies>d3dx9.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
+    <PostBuildEvent>
+      <Command>cp "C:\Users\ul1994\dev\DirectX-Wrappers-master\Debug\d3d9.dll" "C:\Program Files (x86)\2K Sports\Major League Baseball 2K12"</Command>
+    </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <ClCompile>
@@ -95,6 +101,7 @@
     <ClCompile Include="IDirect3DVertexShader9.cpp" />
     <ClCompile Include="IDirect3DVolume9.cpp" />
     <ClCompile Include="IDirect3DVolumeTexture9.cpp" />
+    <ClCompile Include="Overlay.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="d3d9.h" />
@@ -115,6 +122,7 @@
     <ClInclude Include="IDirect3DVertexShader9.h" />
     <ClInclude Include="IDirect3DVolume9.h" />
     <ClInclude Include="IDirect3DVolumeTexture9.h" />
+    <ClInclude Include="Overlay.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="d3d9.def" />
