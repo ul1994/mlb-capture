@@ -46,3 +46,5 @@ typedef HRESULT(WINAPI *Direct3DCreate9ExProc)(UINT, IDirect3D9Ex **);
 #include "Overlay.h"
 
 extern Overlay* m_Overlay;
+
+#include "RenderManager.h"

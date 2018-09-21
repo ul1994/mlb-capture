@@ -62,7 +62,7 @@
       <AdditionalDependencies>d3dx9.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
-      <Command>cp "C:\Users\ul1994\dev\DirectX-Wrappers-master\Debug\d3d9.dll" "C:\Program Files (x86)\2K Sports\Major League Baseball 2K12"</Command>
+      <Command>cp "C:\Users\ul1994\dev\DirectX-Wrappers\Debug\d3d9.dll" "C:\Program Files (x86)\2K Sports\Major League Baseball 2K12"</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -102,6 +102,7 @@
     <ClCompile Include="IDirect3DVolume9.cpp" />
     <ClCompile Include="IDirect3DVolumeTexture9.cpp" />
     <ClCompile Include="Overlay.cpp" />
+    <ClCompile Include="RenderManager.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="d3d9.h" />
@@ -123,6 +124,7 @@
     <ClInclude Include="IDirect3DVolume9.h" />
     <ClInclude Include="IDirect3DVolumeTexture9.h" />
     <ClInclude Include="Overlay.h" />
+    <ClInclude Include="RenderManager.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="d3d9.def" />
