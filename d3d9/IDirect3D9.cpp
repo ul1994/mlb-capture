@@ -112,6 +112,8 @@ HRESULT m_IDirect3D9::CheckDeviceFormatConversion(THIS_ UINT Adapter, D3DDEVTYPE
 	return ProxyInterface->CheckDeviceFormatConversion(Adapter, DeviceType, SourceFormat, TargetFormat);
 }
 
+Overlay* m_Overlay = NULL;
+
 HRESULT m_IDirect3D9::CreateDevice(UINT Adapter, D3DDEVTYPE DeviceType, HWND hFocusWindow, DWORD BehaviorFlags, D3DPRESENT_PARAMETERS *pPresentationParameters, IDirect3DDevice9 **ppReturnedDeviceInterface)
 {
 	HRESULT hr = ProxyInterface->CreateDevice(Adapter, DeviceType, hFocusWindow, BehaviorFlags, pPresentationParameters, ppReturnedDeviceInterface);
@@ -119,7 +121,12 @@ HRESULT m_IDirect3D9::CreateDevice(UINT Adapter, D3DDEVTYPE DeviceType, HWND hFo
 	if (SUCCEEDED(hr) && ppReturnedDeviceInterface)
 	{
 		*ppReturnedDeviceInterface = new m_IDirect3DDevice9(*ppReturnedDeviceInterface, this);
+		LPDIRECT3DDEVICE9 dev = *ppReturnedDeviceInterface;
+		m_Overlay = new Overlay();
+		m_Overlay->Init(dev);
 	}
+
+	// TODO: Create font handles
 
 	return hr;
 }

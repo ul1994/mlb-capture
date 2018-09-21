@@ -2,12 +2,14 @@
 
 class m_IDirect3DDevice9 : public IDirect3DDevice9
 {
+	// TODO: Main device definition
 private:
 	LPDIRECT3DDEVICE9 ProxyInterface;
 	m_IDirect3D9* m_pD3D = nullptr;
 	m_IDirect3D9Ex* m_pD3DEx = nullptr;
 
 public:
+	// TODO: globals declared here?
 	m_IDirect3DDevice9(LPDIRECT3DDEVICE9 pDevice, m_IDirect3D9* pD3D) : ProxyInterface(pDevice), m_pD3D(pD3D)
 	{
 		ProxyAddressLookupTable = new AddressLookupTable<m_IDirect3DDevice9>(this);

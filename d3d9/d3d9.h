@@ -3,6 +3,8 @@
 #define INITGUID
 
 #include <d3d9.h>
+#include <dxerr.h>
+#include <d3dx9.h>
 #include "..\Common\Wrapper.h"
 #include "..\Common\Logging.h"
 
@@ -39,3 +41,8 @@ typedef HRESULT(WINAPI *Direct3DCreate9ExProc)(UINT, IDirect3D9Ex **);
 #include "IDirect3DVertexShader9.h"
 #include "IDirect3DVolume9.h"
 #include "IDirect3DVolumeTexture9.h"
+
+// TODO: import custom here?
+#include "Overlay.h"
+
+extern Overlay* m_Overlay;
