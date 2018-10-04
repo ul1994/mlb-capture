@@ -697,12 +697,13 @@ HRESULT m_IDirect3DDevice9::GetVertexShader(THIS_ IDirect3DVertexShader9** ppSha
 	return hr;
 }
 
-m_IDirect3DVertexShader9 * CurVShader = NULL;
+IDirect3DVertexShader9 * CurVShader = NULL;
 
 HRESULT m_IDirect3DDevice9::SetVertexShader(THIS_ IDirect3DVertexShader9* pShader)
 {
 	if (pShader)
 	{
+		CurVShader = pShader;
 		pShader = static_cast<m_IDirect3DVertexShader9 *>(pShader)->GetProxyInterface();
 	}
 
@@ -771,8 +772,19 @@ HRESULT m_IDirect3DDevice9::GetVertexShaderConstantB(THIS_ UINT StartRegister, B
 	return ProxyInterface->GetVertexShaderConstantB(StartRegister, pConstantData, BoolCount);
 }
 
+const UINT ConstFloatRegisterCount = 256;
 HRESULT m_IDirect3DDevice9::SetVertexShaderConstantF(THIS_ UINT StartRegister, CONST float* pConstantData, UINT Vector4fCount)
 {
+	Log() << "Register count: " << (StartRegister + Vector4fCount) << " vs " << ConstFloatRegisterCount;
+	//DebugOnlyAssert(StartRegister + Vector4fCount <= MaxVShaderFloatConstants, "SetShaderConstant out of range");
+	/*memcpy(
+		&(VShaderFloatConstants[StartRegister]), 
+		pConstantData, 
+		sizeof(float) * 4 * Vector4fCount
+	);*/
+	//memcpy(&(VertexShaderSimulator.ConstFloatRegisters[StartRegister]), pConstantData, sizeof(float) * 4 * Vector4fCount);
+
+
 	return ProxyInterface->SetVertexShaderConstantF(StartRegister, pConstantData, Vector4fCount);
 }
 

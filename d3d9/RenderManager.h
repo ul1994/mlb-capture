@@ -30,6 +30,8 @@ struct RenderInfo
     const void* UserIndexData;
     const void* UserVertexData;
     UINT UserVertexDataStride;
+	Quaternion<float> * asdf;
+	//Quaternion * VShaderFloatConstants[4];
 };
 
 struct VertexData

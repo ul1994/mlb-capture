@@ -60,7 +60,10 @@ typedef HRESULT(WINAPI *Direct3DCreate9ExProc)(UINT, IDirect3D9Ex **);
 //
 //#include "Matrix4.h"
 
-extern m_IDirect3DVertexShader9 * CurVShader;
+#include "quaternion.h"
+
+extern const UINT ConstFloatRegisterCount;
+extern IDirect3DVertexShader9 * CurVShader;
 
 #include "Overlay.h"
 

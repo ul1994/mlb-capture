@@ -606,8 +606,11 @@ void RenderManager::ProcessVerticesHardware(RenderInfo &Info)
     D3DVIEWPORT9 CurViewport;
 	m_IDirect3DDevice9::device->GetViewport(&CurViewport);
 	Log() << "Process Vertices";
-	Log() << CurViewport.X << ", " << CurViewport.Y;
+	//Log() << CurViewport.X << ", " << CurViewport.Y;
 	Log() << CurViewport.Width << ", " << CurViewport.Height;
+	if (CurVShader == NULL) Log() << "No VShader";
+	else                    Log() << "Found VShader";
+
 
     /*Matrix4 Viewport = Matrix4::Scaling(Vec3f(1.0f, -1.0f, 1.0f)) *
 		               Matrix4::Translation(Vec3f(1.0f, 1.0f, 0.0f)) *

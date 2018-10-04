@@ -102,6 +102,7 @@
     <ClCompile Include="IDirect3DVolume9.cpp" />
     <ClCompile Include="IDirect3DVolumeTexture9.cpp" />
     <ClCompile Include="Overlay.cpp" />
+    <ClCompile Include="quaternion.cpp" />
     <ClCompile Include="RenderManager.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -124,6 +125,7 @@
     <ClInclude Include="IDirect3DVolume9.h" />
     <ClInclude Include="IDirect3DVolumeTexture9.h" />
     <ClInclude Include="Overlay.h" />
+    <ClInclude Include="quaternion.h" />
     <ClInclude Include="RenderManager.h" />
   </ItemGroup>
   <ItemGroup>
