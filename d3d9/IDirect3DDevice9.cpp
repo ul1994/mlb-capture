@@ -17,6 +17,8 @@
 #include "d3d9.h"
 
 RenderManager renderManager;
+int vcount = 0;
+UINT ConstFloatRegisterCount = 256;
 
 HRESULT m_IDirect3DDevice9::QueryInterface(REFIID riid, void** ppvObj)
 {
@@ -469,7 +471,27 @@ HRESULT m_IDirect3DDevice9::Present(CONST RECT *pSourceRect, CONST RECT *pDestRe
 
 HRESULT m_IDirect3DDevice9::DrawIndexedPrimitive(THIS_ D3DPRIMITIVETYPE Type, INT BaseVertexIndex, UINT MinVertexIndex, UINT NumVertices, UINT startIndex, UINT primCount)
 {
-	Log() << "DrawIndexedPrimitive";
+	if (vcount > 50) {
+		Log() << "DrawIndexedPrimitive: " << vcount;
+		// TODO: dump prim for viewing...
+		char buff[256];
+		sprintf(buff, "meshes/%d.mesh", vcount);
+		std::ofstream vfile;
+		vfile.open(buff);
+
+		sprintf(buff, "v %d\n", vcount);
+		vfile << buff;
+		for (int ii = 0; ii < vcount; ii++) {
+			sprintf(buff, "%f %f %f\n", 
+				renderManager.placeholder[ii].x,
+				renderManager.placeholder[ii].y,
+				renderManager.placeholder[ii].z);
+			vfile << buff;
+		}
+		vfile.close();
+	}
+	vcount = 0;
+	
 	renderManager.DrawIndexedPrimitive(Type, BaseVertexIndex, MinVertexIndex, NumVertices, startIndex, primCount);
 	return ProxyInterface->DrawIndexedPrimitive(Type, BaseVertexIndex, MinVertexIndex, NumVertices, startIndex, primCount);
 }
@@ -482,7 +504,7 @@ HRESULT m_IDirect3DDevice9::DrawIndexedPrimitiveUP(D3DPRIMITIVETYPE PrimitiveTyp
 
 HRESULT m_IDirect3DDevice9::DrawPrimitive(D3DPRIMITIVETYPE PrimitiveType, UINT StartVertex, UINT PrimitiveCount)
 {
-	Log() << "DrawPrimitive";
+	//Log() << "DrawPrimitive";
 	renderManager.DrawPrimitive(PrimitiveType, StartVertex, PrimitiveCount);
 	return ProxyInterface->DrawPrimitive(PrimitiveType, StartVertex, PrimitiveCount);
 }
@@ -490,6 +512,7 @@ HRESULT m_IDirect3DDevice9::DrawPrimitive(D3DPRIMITIVETYPE PrimitiveType, UINT S
 HRESULT m_IDirect3DDevice9::DrawPrimitiveUP(D3DPRIMITIVETYPE PrimitiveType, UINT PrimitiveCount, CONST void *pVertexStreamZeroData, UINT VertexStreamZeroStride)
 {
 	//Log() << "DrawPrimitiveUP";
+	//vcount = 0;
 	return ProxyInterface->DrawPrimitiveUP(PrimitiveType, PrimitiveCount, pVertexStreamZeroData, VertexStreamZeroStride);
 }
 
@@ -513,6 +536,7 @@ HRESULT m_IDirect3DDevice9::GetStreamSource(THIS_ UINT StreamNumber, IDirect3DVe
 
 HRESULT m_IDirect3DDevice9::SetStreamSource(THIS_ UINT StreamNumber, IDirect3DVertexBuffer9* pStreamData, UINT OffsetInBytes, UINT Stride)
 {
+	//Log() << "Using streams";
 	if (pStreamData)
 	{
 		pStreamData = static_cast<m_IDirect3DVertexBuffer9 *>(pStreamData)->GetProxyInterface();
@@ -660,6 +684,7 @@ HRESULT m_IDirect3DDevice9::SetClipPlane(DWORD Index, CONST float *pPlane)
 
 HRESULT m_IDirect3DDevice9::Clear(DWORD Count, CONST D3DRECT *pRects, DWORD Flags, D3DCOLOR Color, float Z, DWORD Stencil)
 {
+	//vcount = 0;
 	return ProxyInterface->Clear(Count, pRects, Flags, Color, Z, Stencil);
 }
 
@@ -772,10 +797,9 @@ HRESULT m_IDirect3DDevice9::GetVertexShaderConstantB(THIS_ UINT StartRegister, B
 	return ProxyInterface->GetVertexShaderConstantB(StartRegister, pConstantData, BoolCount);
 }
 
-UINT ConstFloatRegisterCount = 256;
 HRESULT m_IDirect3DDevice9::SetVertexShaderConstantF(THIS_ UINT StartRegister, CONST float* pConstantData, UINT Vector4fCount)
 {
-	Log() << "Register count: " << (StartRegister + Vector4fCount) << " vs " << ConstFloatRegisterCount;
+	//Log() << "Register count: " << (StartRegister + Vector4fCount) << " vs " << ConstFloatRegisterCount;
 	//DebugOnlyAssert(StartRegister + Vector4fCount <= MaxVShaderFloatConstants, "SetShaderConstant out of range");
 	memcpy(
 		&(renderManager.placeholder[StartRegister]), 
@@ -796,6 +820,7 @@ HRESULT m_IDirect3DDevice9::SetVertexShaderConstantF(THIS_ UINT StartRegister, C
 			renderManager.placeholder[ind].z, 
 			renderManager.placeholder[ind].w);
 	}
+	vcount += 1;
 	
 
 	return ProxyInterface->SetVertexShaderConstantF(StartRegister, pConstantData, Vector4fCount);

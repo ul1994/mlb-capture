@@ -185,7 +185,7 @@ class Quaternion
   void toEuler(_Tp e[3], int order);
 #endif
 
- private:
+ /*private:*/
   // [w, (x, y, z)]
   _Tp w, x, y, z;
   

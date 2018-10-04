@@ -64,6 +64,7 @@ typedef HRESULT(WINAPI *Direct3DCreate9ExProc)(UINT, IDirect3D9Ex **);
 
 extern UINT ConstFloatRegisterCount;
 extern IDirect3DVertexShader9 * CurVShader;
+extern int vcount;
 
 #include "Overlay.h"
 

@@ -49,7 +49,7 @@ bool WINAPI DllMain(HMODULE hModule, DWORD dwReason, LPVOID lpReserved)
 		char path[MAX_PATH];
 		GetSystemDirectoryA(path, MAX_PATH);
 		strcat_s(path, "\\d3d9.dll");
-		Log() << "Loading " << path;
+		//Log() << "Loading " << path;
 		d3d9dll = LoadLibraryA(path);
 
 		// Get function addresses
@@ -70,7 +70,7 @@ bool WINAPI DllMain(HMODULE hModule, DWORD dwReason, LPVOID lpReserved)
 		m_pDirect3DCreate9Ex = (Direct3DCreate9ExProc)GetProcAddress(d3d9dll, "Direct3DCreate9Ex");
 		MessageBox(NULL, L"Launching...", L"STATUS", MB_OK);
 
-		Log() << "Hello world";
+		//Log() << "Hello world";
 		break;
 
 	case DLL_PROCESS_DETACH:

@@ -608,11 +608,11 @@ void RenderManager::ProcessVerticesHardware(RenderInfo &Info)
 
     D3DVIEWPORT9 CurViewport;
 	m_IDirect3DDevice9::device->GetViewport(&CurViewport);
-	Log() << "Process Vertices";
+	//Log() << "Process Vertices";
 	//Log() << CurViewport.X << ", " << CurViewport.Y;
-	Log() << CurViewport.Width << ", " << CurViewport.Height;
-	if (CurVShader == NULL) Log() << "No VShader";
-	else                    Log() << "Found VShader";
+	//Log() << CurViewport.Width << ", " << CurViewport.Height;
+	//if (CurVShader == NULL) Log() << "No VShader";
+	//else                    Log() << "Found VShader";
 
 
     /*Matrix4 Viewport = Matrix4::Scaling(Vec3f(1.0f, -1.0f, 1.0f)) *
@@ -630,6 +630,9 @@ void RenderManager::ProcessVerticesHardware(RenderInfo &Info)
 	Matrix4 ObjectToScreen;
 	if(CurVShader->DeclarationFound(D3DDECLUSAGE_NORMAL))
 	{*/
+	//Log() << "ObjectA? " << placeholder[0].x << ", " << placeholder[0].y << ", " << placeholder[0].z;
+	//Log() << "ObjectB? " << placeholder[1].x << ", " << placeholder[1].y << ", " << placeholder[1].z;
+	//Log() << "ObjectC? " << placeholder[2].x << ", " << placeholder[2].y << ", " << placeholder[2].z;
 	/*	Matrix4 ObjectToCamera;
 		Matrix4 CameraToProjection;
 
@@ -745,7 +748,7 @@ void RenderManager::DoTransforms(RenderInfo &Info)
     //const ProcessedVertex *ProcessedVertices = _HardwareProcessedVertices;
 
     //Rectangle2f ScreenBound(Vec2f::Origin, Vec2f::Origin);
-	Log() << "DoTransforms " << Info.NumVertices;
+	//Log() << "DoTransforms " << Info.NumVertices;
     for(UINT VertexIndex = 0; VertexIndex < Info.NumVertices; VertexIndex++)
     {
         //const ProcessedVertex &CurVertex = ProcessedVertices[VertexIndex];
