@@ -772,18 +772,31 @@ HRESULT m_IDirect3DDevice9::GetVertexShaderConstantB(THIS_ UINT StartRegister, B
 	return ProxyInterface->GetVertexShaderConstantB(StartRegister, pConstantData, BoolCount);
 }
 
-const UINT ConstFloatRegisterCount = 256;
+UINT ConstFloatRegisterCount = 256;
 HRESULT m_IDirect3DDevice9::SetVertexShaderConstantF(THIS_ UINT StartRegister, CONST float* pConstantData, UINT Vector4fCount)
 {
 	Log() << "Register count: " << (StartRegister + Vector4fCount) << " vs " << ConstFloatRegisterCount;
 	//DebugOnlyAssert(StartRegister + Vector4fCount <= MaxVShaderFloatConstants, "SetShaderConstant out of range");
-	/*memcpy(
-		&(VShaderFloatConstants[StartRegister]), 
+	memcpy(
+		&(renderManager.placeholder[StartRegister]), 
 		pConstantData, 
 		sizeof(float) * 4 * Vector4fCount
-	);*/
+	);
+
+
 	//memcpy(&(VertexShaderSimulator.ConstFloatRegisters[StartRegister]), pConstantData, sizeof(float) * 4 * Vector4fCount);
 
+
+
+	for (UINT ii = 0; ii < Vector4fCount; ii++) {
+		UINT ind = StartRegister + ii;
+		*(renderManager.VShaderFloatConstants[ind]) = Quaternion<float>(
+			renderManager.placeholder[ind].x, 
+			renderManager.placeholder[ind].y, 
+			renderManager.placeholder[ind].z, 
+			renderManager.placeholder[ind].w);
+	}
+	
 
 	return ProxyInterface->SetVertexShaderConstantF(StartRegister, pConstantData, Vector4fCount);
 }

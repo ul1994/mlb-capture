@@ -18,6 +18,9 @@ RenderManager::RenderManager()
 	_ProcessedVerticesDeclaration = NULL;
 	_BmpCapturePrev = NULL;
 	_BmpCaptureCurrent = NULL;*/
+	for (int ii = 0; ii < 256; ii++) {
+		VShaderFloatConstants[ii] = new Quaternion<float>(0, 0,0,0);
+	}
 }
 
 void RenderManager::StartFrame()

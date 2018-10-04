@@ -30,8 +30,6 @@ struct RenderInfo
     const void* UserIndexData;
     const void* UserVertexData;
     UINT UserVertexDataStride;
-	Quaternion<float> * asdf;
-	//Quaternion * VShaderFloatConstants[4];
 };
 
 struct VertexData
@@ -48,6 +46,13 @@ struct VertexData
 struct VertexProcessingOptions
 {
 	bool FullSimulation;
+};
+
+struct Placeholder {
+	float x;
+	float y;
+	float z;
+	float w;
 };
 
 class RenderManager
@@ -69,7 +74,9 @@ public:
     //bool CaptureCurrentRenderTargetSubset(Bitmap &Bmp, const Rectangle2i &Region);
 
     //void ReleaseStorageObjects();
-    
+	Quaternion<float> * VShaderFloatConstants[256];
+	Placeholder placeholder[256];
+	
 private:
     //void CompressCurrentFrame();
 
