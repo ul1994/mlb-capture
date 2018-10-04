@@ -127,6 +127,7 @@
     <ClInclude Include="Overlay.h" />
     <ClInclude Include="quaternion.h" />
     <ClInclude Include="RenderManager.h" />
+    <ClInclude Include="Structs.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="d3d9.def" />

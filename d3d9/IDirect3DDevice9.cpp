@@ -17,7 +17,6 @@
 #include "d3d9.h"
 
 RenderManager renderManager;
-int vcount = 0;
 UINT ConstFloatRegisterCount = 256;
 
 HRESULT m_IDirect3DDevice9::QueryInterface(REFIID riid, void** ppvObj)
@@ -299,10 +298,12 @@ HRESULT m_IDirect3DDevice9::GetIndices(THIS_ IDirect3DIndexBuffer9** ppIndexData
 	return hr;
 }
 
+IDirect3DIndexBuffer9* validIndex = NULL;
 HRESULT m_IDirect3DDevice9::SetIndices(THIS_ IDirect3DIndexBuffer9* pIndexData)
 {
 	if (pIndexData)
 	{
+		validIndex = pIndexData;
 		pIndexData = static_cast<m_IDirect3DIndexBuffer9 *>(pIndexData)->GetProxyInterface();
 	}
 
@@ -471,26 +472,41 @@ HRESULT m_IDirect3DDevice9::Present(CONST RECT *pSourceRect, CONST RECT *pDestRe
 
 HRESULT m_IDirect3DDevice9::DrawIndexedPrimitive(THIS_ D3DPRIMITIVETYPE Type, INT BaseVertexIndex, UINT MinVertexIndex, UINT NumVertices, UINT startIndex, UINT primCount)
 {
-	if (vcount > 50) {
-		Log() << "DrawIndexedPrimitive: " << vcount;
-		// TODO: dump prim for viewing...
+	
+	//Log() << "DrawIndexedPrimitive";
+	if (NumVertices > 50) {
+		identifyVertex(vertexType);
+		//Log() << "DrawIndexedPrimitive: V " << NumVertices << "  P " << primCount << "  Start " << startIndex;
+
+		/*Log() << "FVF " << desc.FVF;
+		Log() << "  ? " << (D3DFVF_XYZ);
+		Log() << "  ? " << (D3DFVF_XYZRHW | D3DFVF_DIFFUSE);*/
+		//Stream_Data->GetDesc(&desc);
+
+		/*VOID* data;
+		FVF* vertices = (FVF*) malloc(sizeof(FVF) * NumVertices);
+		validVertex->Lock(BaseVertexIndex, NumVertices, (void**)&data, 0);
+		memcpy(vertices, data, sizeof(FVF) * NumVertices);
+
 		char buff[256];
-		sprintf(buff, "meshes/%d.mesh", vcount);
+		sprintf(buff, "meshes/%d.mesh", NumVertices);
 		std::ofstream vfile;
 		vfile.open(buff);
 
-		sprintf(buff, "v %d\n", vcount);
+		sprintf(buff, "v %d\n", NumVertices);
 		vfile << buff;
-		for (int ii = 0; ii < vcount; ii++) {
-			sprintf(buff, "%f %f %f\n", 
-				renderManager.placeholder[ii].x,
-				renderManager.placeholder[ii].y,
-				renderManager.placeholder[ii].z);
+		for (int ii = 0; ii < NumVertices; ii++) {
+			sprintf(buff, "%f %f %f\n",
+				vertices[ii].x,
+				vertices[ii].y,
+				vertices[ii].z);
 			vfile << buff;
 		}
 		vfile.close();
+
+		validVertex->Unlock();
+		delete vertices;*/
 	}
-	vcount = 0;
 	
 	renderManager.DrawIndexedPrimitive(Type, BaseVertexIndex, MinVertexIndex, NumVertices, startIndex, primCount);
 	return ProxyInterface->DrawIndexedPrimitive(Type, BaseVertexIndex, MinVertexIndex, NumVertices, startIndex, primCount);
@@ -504,15 +520,12 @@ HRESULT m_IDirect3DDevice9::DrawIndexedPrimitiveUP(D3DPRIMITIVETYPE PrimitiveTyp
 
 HRESULT m_IDirect3DDevice9::DrawPrimitive(D3DPRIMITIVETYPE PrimitiveType, UINT StartVertex, UINT PrimitiveCount)
 {
-	//Log() << "DrawPrimitive";
 	renderManager.DrawPrimitive(PrimitiveType, StartVertex, PrimitiveCount);
 	return ProxyInterface->DrawPrimitive(PrimitiveType, StartVertex, PrimitiveCount);
 }
 
 HRESULT m_IDirect3DDevice9::DrawPrimitiveUP(D3DPRIMITIVETYPE PrimitiveType, UINT PrimitiveCount, CONST void *pVertexStreamZeroData, UINT VertexStreamZeroStride)
 {
-	//Log() << "DrawPrimitiveUP";
-	//vcount = 0;
 	return ProxyInterface->DrawPrimitiveUP(PrimitiveType, PrimitiveCount, pVertexStreamZeroData, VertexStreamZeroStride);
 }
 
@@ -534,11 +547,12 @@ HRESULT m_IDirect3DDevice9::GetStreamSource(THIS_ UINT StreamNumber, IDirect3DVe
 	return hr;
 }
 
+IDirect3DVertexBuffer9* validVertex = NULL;
 HRESULT m_IDirect3DDevice9::SetStreamSource(THIS_ UINT StreamNumber, IDirect3DVertexBuffer9* pStreamData, UINT OffsetInBytes, UINT Stride)
 {
-	//Log() << "Using streams";
 	if (pStreamData)
 	{
+		validVertex = pStreamData;
 		pStreamData = static_cast<m_IDirect3DVertexBuffer9 *>(pStreamData)->GetProxyInterface();
 	}
 
@@ -684,7 +698,6 @@ HRESULT m_IDirect3DDevice9::SetClipPlane(DWORD Index, CONST float *pPlane)
 
 HRESULT m_IDirect3DDevice9::Clear(DWORD Count, CONST D3DRECT *pRects, DWORD Flags, D3DCOLOR Color, float Z, DWORD Stencil)
 {
-	//vcount = 0;
 	return ProxyInterface->Clear(Count, pRects, Flags, Color, Z, Stencil);
 }
 
@@ -799,30 +812,6 @@ HRESULT m_IDirect3DDevice9::GetVertexShaderConstantB(THIS_ UINT StartRegister, B
 
 HRESULT m_IDirect3DDevice9::SetVertexShaderConstantF(THIS_ UINT StartRegister, CONST float* pConstantData, UINT Vector4fCount)
 {
-	//Log() << "Register count: " << (StartRegister + Vector4fCount) << " vs " << ConstFloatRegisterCount;
-	//DebugOnlyAssert(StartRegister + Vector4fCount <= MaxVShaderFloatConstants, "SetShaderConstant out of range");
-	memcpy(
-		&(renderManager.placeholder[StartRegister]), 
-		pConstantData, 
-		sizeof(float) * 4 * Vector4fCount
-	);
-
-
-	//memcpy(&(VertexShaderSimulator.ConstFloatRegisters[StartRegister]), pConstantData, sizeof(float) * 4 * Vector4fCount);
-
-
-
-	for (UINT ii = 0; ii < Vector4fCount; ii++) {
-		UINT ind = StartRegister + ii;
-		*(renderManager.VShaderFloatConstants[ind]) = Quaternion<float>(
-			renderManager.placeholder[ind].x, 
-			renderManager.placeholder[ind].y, 
-			renderManager.placeholder[ind].z, 
-			renderManager.placeholder[ind].w);
-	}
-	vcount += 1;
-	
-
 	return ProxyInterface->SetVertexShaderConstantF(StartRegister, pConstantData, Vector4fCount);
 }
 
@@ -842,13 +831,67 @@ HRESULT m_IDirect3DDevice9::GetVertexShaderConstantI(THIS_ UINT StartRegister, i
 }
 
 HRESULT m_IDirect3DDevice9::SetFVF(THIS_ DWORD FVF)
-{
+{	
 	return ProxyInterface->SetFVF(FVF);
 }
 
 HRESULT m_IDirect3DDevice9::GetFVF(THIS_ DWORD* pFVF)
 {
 	return ProxyInterface->GetFVF(pFVF);
+}
+
+void m_IDirect3DDevice9::identifyVertex(IDirect3DVertexDeclaration9* ppDecl) {
+	std::string names[] = {
+		"D3DDECLTYPE_FLOAT1",
+		"D3DDECLTYPE_FLOAT2",
+		"D3DDECLTYPE_FLOAT3",
+		"D3DDECLTYPE_FLOAT4",
+		"D3DDECLTYPE_D3DCOLOR",
+		"D3DDECLTYPE_UBYTE4",
+		"D3DDECLTYPE_SHORT2",
+		"D3DDECLTYPE_SHORT4",
+		"D3DDECLTYPE_UBYTE4N",
+		"D3DDECLTYPE_SHORT2N",
+		"D3DDECLTYPE_SHORT4N",
+		"D3DDECLTYPE_USHORT2N",
+		"D3DDECLTYPE_USHORT4N",
+		"D3DDECLTYPE_UDEC3",
+		"D3DDECLTYPE_DEC3N",
+		"D3DDECLTYPE_FLOAT16_2",
+		"D3DDECLTYPE_FLOAT16_4",
+		"D3DDECLTYPE_UNUSED",
+	};
+
+	char buff[256];
+	D3DVERTEXELEMENT9 decl[MAXD3DDECLLENGTH];
+	UINT numElements;
+	ppDecl->GetDeclaration(decl, &numElements);
+	//if (numElements == 6) {
+	Log() << "Identifying declaration: " << numElements;
+	for (int ii = 0; ii < numElements - 1; ii++) {
+		for (int jj = 0; jj < 18; jj++) {
+			D3DDECLTYPE dtype = static_cast<D3DDECLTYPE>(jj);
+			if (dtype == decl[ii].Type) {
+				sprintf(buff, "%d: %s", ii, names[jj].c_str());
+				Log() << "   " << buff;
+				break;
+			}
+		}
+	}
+
+	//if (decl[0].Type == static_cast<D3DDECLTYPE>(2)
+	//	&& decl[1].Type == static_cast<D3DDECLTYPE>(16)
+	//	&& decl[2].Type == static_cast<D3DDECLTYPE>(9)
+	//	&& decl[3].Type == static_cast<D3DDECLTYPE>(10)
+	//	&& decl[4].Type == static_cast<D3DDECLTYPE>(10)) {
+
+	//	Log() << "Identified: V6 !!!";
+	//	//return 1;
+	//}
+
+		
+	//}
+	//return -1;
 }
 
 HRESULT m_IDirect3DDevice9::CreateVertexDeclaration(THIS_ CONST D3DVERTEXELEMENT9* pVertexElements, IDirect3DVertexDeclaration9** ppDecl)
@@ -863,10 +906,12 @@ HRESULT m_IDirect3DDevice9::CreateVertexDeclaration(THIS_ CONST D3DVERTEXELEMENT
 	return hr;
 }
 
+IDirect3DVertexDeclaration9* vertexType = NULL;
 HRESULT m_IDirect3DDevice9::SetVertexDeclaration(THIS_ IDirect3DVertexDeclaration9* pDecl)
 {
 	if (pDecl)
 	{
+		vertexType = pDecl;
 		pDecl = static_cast<m_IDirect3DVertexDeclaration9 *>(pDecl)->GetProxyInterface();
 	}
 

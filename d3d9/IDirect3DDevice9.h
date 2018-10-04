@@ -27,6 +27,8 @@ public:
 	virtual LPDIRECT3DDEVICE9 GetProxyInterface() { return ProxyInterface; }
 	AddressLookupTable<m_IDirect3DDevice9> *ProxyAddressLookupTable;
 
+	void identifyVertex(IDirect3DVertexDeclaration9* ppDecl);
+
 	/*** IUnknown methods ***/
 	STDMETHOD(QueryInterface)(THIS_ REFIID riid, void** ppvObj);
 	STDMETHOD_(ULONG, AddRef)(THIS);

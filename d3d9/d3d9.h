@@ -62,9 +62,14 @@ typedef HRESULT(WINAPI *Direct3DCreate9ExProc)(UINT, IDirect3D9Ex **);
 
 #include "quaternion.h"
 
+extern IDirect3DVertexDeclaration9* vertexType;
+extern IDirect3DVertexBuffer9* validVertex;
+extern IDirect3DIndexBuffer9* validIndex;
 extern UINT ConstFloatRegisterCount;
 extern IDirect3DVertexShader9 * CurVShader;
 extern int vcount;
+
+#include "Structs.h"
 
 #include "Overlay.h"
 
