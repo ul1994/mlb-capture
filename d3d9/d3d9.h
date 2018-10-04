@@ -6,6 +6,9 @@
 #include <dxerr.h>
 #include <d3dx9.h>
 #include <fstream>
+#include <sstream>
+#include <string>
+#include <iomanip>
 #include "..\Common\Wrapper.h"
 #include "..\Common\Logging.h"
 
@@ -44,6 +47,21 @@ typedef HRESULT(WINAPI *Direct3DCreate9ExProc)(UINT, IDirect3D9Ex **);
 #include "IDirect3DVolumeTexture9.h"
 
 // TODO: import custom here?
+//#include "Vector.h"
+//#include "UnicodeString.h"
+//#include "String.h"
+//#include "Asserts.h"
+//
+//#include "Plane.h"
+//
+//#include "RGBColor.h"
+//#include "Stdhdr.h"
+//#include "SpaceVector.h"
+//
+//#include "Matrix4.h"
+
+extern m_IDirect3DVertexShader9 * CurVShader;
+
 #include "Overlay.h"
 
 extern Overlay* m_Overlay;
@@ -51,4 +69,8 @@ extern Overlay* m_Overlay;
 #include "RenderManager.h"
 
 extern RenderManager renderManager;
+
+
+
+
 

@@ -601,19 +601,19 @@ void RenderManager::ProcessVerticesHardware(RenderInfo &Info)
 	//LPDIRECT3DDEVICE9 Device = g_Context->Graphics.Device();
 
 	//_HardwareProcessedVertices.ReSize(Info.NumVertices);
-    //ProcessedVertex *ProcessedVertices = _HardwareProcessedVertices.CArray();
+    //ProcvessedVertex *ProcessedVertices = _HardwareProcessedVertices.CArray();
 
- //   D3DVIEWPORT9 CurViewport;
-	//dev->GetViewport(&CurViewport);
-	//Log() << "Process Vertices";
-	//Log() << CurViewport.X << ", " << CurViewport.Y;
-	//Log() << CurViewport.Width << ", " << CurViewport.Height;
+    D3DVIEWPORT9 CurViewport;
+	m_IDirect3DDevice9::device->GetViewport(&CurViewport);
+	Log() << "Process Vertices";
+	Log() << CurViewport.X << ", " << CurViewport.Y;
+	Log() << CurViewport.Width << ", " << CurViewport.Height;
 
     /*Matrix4 Viewport = Matrix4::Scaling(Vec3f(1.0f, -1.0f, 1.0f)) *
 		               Matrix4::Translation(Vec3f(1.0f, 1.0f, 0.0f)) *
 					   Matrix4::Scaling(Vec3f(CurViewport.Width / 2.0f, CurViewport.Height / 2.0f, 1.0f)) *
-					   Matrix4::Translation(Vec3f(float(CurViewport.X), float(CurViewport.Y), 0.0f));
-	
+					   Matrix4::Translation(Vec3f(float(CurViewport.X), float(CurViewport.Y), 0.0f));*/
+	/*
 	VShader *CurVShader = g_Context->Managers.State.CurVShader;
     if(CurVShader == NULL)
     {

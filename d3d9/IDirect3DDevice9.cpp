@@ -697,6 +697,8 @@ HRESULT m_IDirect3DDevice9::GetVertexShader(THIS_ IDirect3DVertexShader9** ppSha
 	return hr;
 }
 
+m_IDirect3DVertexShader9 * CurVShader = NULL;
+
 HRESULT m_IDirect3DDevice9::SetVertexShader(THIS_ IDirect3DVertexShader9* pShader)
 {
 	if (pShader)
