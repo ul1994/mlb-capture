@@ -564,48 +564,23 @@ HRESULT m_IDirect3DDevice9::DrawIndexedPrimitive(THIS_ D3DPRIMITIVETYPE Type, IN
 
 					int unit = sizeof(FLOAT);
 					int stride = dsize / unit;
-					sprintf(buff, "%f %f %f",
-						casted[stride*0 + 0],
-						casted[stride * 0 + 1],
-						casted[stride*0 + 2]);
+					if (dtype == 4) {
+						sprintf(buff, "%f %f %f %f",
+							casted[stride * 0 + 0],
+							casted[stride * 0 + 1],
+							casted[stride * 0 + 2],
+							casted[stride * 0 + 3]);
+					}
+					else {
+						sprintf(buff, "%f %f %f",
+							casted[stride * 0 + 0],
+							casted[stride * 0 + 1],
+							casted[stride * 0 + 2]);
+					}
 
 					Log() << "  " << buff;
 
 					delete verts;
-
-					/*if (verbose) Log() << " Verts:";
-					if (dtype == 1) {
-						V6* casted = (V6*)verts;
-						sprintf(buff, "%f %f %f",
-							casted[indices[4] - minInd].Position.x,
-							casted[indices[4] - minInd].Position.y,
-							casted[indices[4] - minInd].Position.z);
-					}
-					else if (dtype == 2) {
-						V6B* casted = (V6B*)verts;
-						sprintf(buff, "%f %f %f",
-							casted[indices[4] - minInd].Position.x,
-							casted[indices[4] - minInd].Position.y,
-							casted[indices[4] - minInd].Position.z);
-					}
-					else if (dtype == 3) {
-						V5* casted = (V5*)verts;
-						sprintf(buff, "%f %f %f",
-							casted[indices[4] - minInd].Position.x,
-							casted[indices[4] - minInd].Position.y,
-							casted[indices[4] - minInd].Position.z);
-					}
-					else if (dtype == 4) {
-						V5B* casted = (V5B*)verts;
-						sprintf(buff, "%f %f %f %f",
-							casted[indices[4] - minInd].Position.x,
-							casted[indices[4] - minInd].Position.y,
-							casted[indices[4] - minInd].Position.z,
-							casted[indices[4] - minInd].Position.w);
-					}
-					if (verbose) Log() << "    " << buff;*/
-
-					
 				}
 			}
 
