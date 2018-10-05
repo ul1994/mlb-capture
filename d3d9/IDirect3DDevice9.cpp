@@ -115,6 +115,7 @@ HRESULT m_IDirect3DDevice9::CreateDepthStencilSurface(THIS_ UINT Width, UINT Hei
 	return hr;
 }
 
+std::map<IDirect3DIndexBuffer9*, int> indexBufferSize;
 HRESULT m_IDirect3DDevice9::CreateIndexBuffer(THIS_ UINT Length, DWORD Usage, D3DFORMAT Format, D3DPOOL Pool, IDirect3DIndexBuffer9** ppIndexBuffer, HANDLE* pSharedHandle)
 {
 	HRESULT hr = ProxyInterface->CreateIndexBuffer(Length, Usage, Format, Pool, ppIndexBuffer, pSharedHandle);
@@ -474,11 +475,38 @@ HRESULT m_IDirect3DDevice9::DrawIndexedPrimitive(THIS_ D3DPRIMITIVETYPE Type, IN
 {
 	
 	
-	if (NumVertices > 50) {
+	if (NumVertices > 50 && Type == D3DPT_TRIANGLELIST) {
 		int dtype = -1;
-		identifyVertex(vertexType, &dtype);
+		//identifyVertex(vertexType, &dtype);
 
-		//Log() << "DrawIndexedPrimitive   V " << NumVertices << ",  S " << startIndex;
+		Log() << "DrawIndexedPrimitive   V " << NumVertices << ",  S " << startIndex << ",  P " << primCount;
+
+		short* indices = new short[3 * primCount];
+
+		VOID * pVoid;
+		validIndex->Lock(startIndex, sizeof(short)*3 * primCount, &pVoid, 0);
+		memcpy(indices, pVoid, sizeof(short)*3 * primCount);
+		validIndex->Unlock();
+
+		char buff[256];
+		for (int ii = 0; ii < 4; ii++) {
+			sprintf(buff, "%hu %hu %hu",
+				indices[3 * ii + 0],
+				indices[3 * ii + 1],
+				indices[3 * ii + 2]);
+			Log() << "    " << buff;
+		}
+		Log() << "    ...";
+		for (int ii = 0; ii < 2; ii++) {
+			sprintf(buff, "%hu %hu %hu",
+				indices[3 * (primCount - ii - 1) + 0],
+				indices[3 * (primCount - ii - 1) + 1],
+				indices[3 * (primCount - ii - 1) + 2]);
+			Log() << "    " << buff;
+		}
+
+		delete indices;
+
 
 		/*if (dtype != -1 && dtype != 4) {
 			VOID* data;
