@@ -9,6 +9,8 @@
 #include <sstream>
 #include <string>
 #include <iomanip>
+#include <map>
+
 #include "..\Common\Wrapper.h"
 #include "..\Common\Logging.h"
 
@@ -62,6 +64,7 @@ typedef HRESULT(WINAPI *Direct3DCreate9ExProc)(UINT, IDirect3D9Ex **);
 
 #include "quaternion.h"
 
+extern std::map<IDirect3DVertexBuffer9*, int> sizeLookup;
 extern IDirect3DVertexDeclaration9* vertexType;
 extern IDirect3DVertexBuffer9* validVertex;
 extern IDirect3DIndexBuffer9* validIndex;
