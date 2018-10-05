@@ -54,6 +54,20 @@ struct V5 {
 	FLOAT c, f;       // add up to 64 bits
 };
 
+struct V5B {
+	/*Identifying declaration : 5
+	0 : D3DDECLTYPE_FLOAT4  D3DDECLUSAGE_POSITION
+	1 : D3DDECLTYPE_SHORT4N  D3DDECLUSAGE_TEXCOORD
+	2 : D3DDECLTYPE_UBYTE4  D3DDECLUSAGE_BLENDINDICES
+	3 : D3DDECLTYPE_UBYTE4N  D3DDECLUSAGE_BLENDWEIGHT*/
+	D3DXVECTOR4 Position;
+	FLOAT d, e;       // add up to 64 bits
+	FLOAT c, f;       // add up to 64 bits
+	FLOAT a, b;       // add up to 64 bits
+};
+
+
+
 
 
 

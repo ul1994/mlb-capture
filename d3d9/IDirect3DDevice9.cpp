@@ -473,12 +473,9 @@ HRESULT m_IDirect3DDevice9::Present(CONST RECT *pSourceRect, CONST RECT *pDestRe
 
 HRESULT m_IDirect3DDevice9::DrawIndexedPrimitive(THIS_ D3DPRIMITIVETYPE Type, INT BaseVertexIndex, UINT MinVertexIndex, UINT NumVertices, UINT startIndex, UINT primCount)
 {
-	
+	// NumVertices - reflects full size of vertex buffer regardless of which indices are used
 	
 	if (NumVertices > 50 && Type == D3DPT_TRIANGLELIST) {
-		int dtype = -1;
-		//identifyVertex(vertexType, &dtype);
-
 		Log() << "DrawIndexedPrimitive   V " << NumVertices << ",  S " << startIndex << ",  P " << primCount;
 
 		short* indices = new short[3 * primCount];
@@ -489,7 +486,7 @@ HRESULT m_IDirect3DDevice9::DrawIndexedPrimitive(THIS_ D3DPRIMITIVETYPE Type, IN
 		validIndex->Unlock();
 
 		char buff[256];
-		for (int ii = 0; ii < 4; ii++) {
+		for (int ii = 0; ii < 1; ii++) {
 			sprintf(buff, "%hu %hu %hu",
 				indices[3 * ii + 0],
 				indices[3 * ii + 1],
@@ -497,7 +494,7 @@ HRESULT m_IDirect3DDevice9::DrawIndexedPrimitive(THIS_ D3DPRIMITIVETYPE Type, IN
 			Log() << "    " << buff;
 		}
 		Log() << "    ...";
-		for (int ii = 0; ii < 2; ii++) {
+		for (int ii = 0; ii < 1; ii++) {
 			sprintf(buff, "%hu %hu %hu",
 				indices[3 * (primCount - ii - 1) + 0],
 				indices[3 * (primCount - ii - 1) + 1],
@@ -505,6 +502,85 @@ HRESULT m_IDirect3DDevice9::DrawIndexedPrimitive(THIS_ D3DPRIMITIVETYPE Type, IN
 			Log() << "    " << buff;
 		}
 
+		short minInd = indices[0];
+		short maxInd = indices[0];
+		for (int ii = 0; ii < 3 * primCount; ii++) {
+			if (indices[ii] < minInd) minInd = indices[ii];
+			if (indices[ii] > maxInd) maxInd = indices[ii];
+		}
+		Log() << "    Param min: " << MinVertexIndex << "  Act min: " << minInd << "   Max: " << maxInd << "   Range: " << (maxInd - minInd);
+
+		if (minInd >= 0) {
+			int dtype = -1;
+			identifyVertex(vertexType, &dtype);
+
+			if (dtype > 0) {
+				int dsize = 0;
+				if (dtype == 1) {
+					dsize = sizeof(V6);
+				}
+				else if (dtype == 2) {
+					dsize = sizeof(V6B);
+				}
+				else if (dtype == 3) {
+					dsize = sizeof(V5);
+				}
+				else if (dtype == 4) {
+					dsize = sizeof(V5B);
+				}
+
+				VOID* verts = malloc(dsize * NumVertices);
+
+				validVertex->Lock(0, dsize * NumVertices, &pVoid, 0);
+				memcpy(verts, pVoid, dsize * NumVertices);
+				validVertex->Unlock();
+
+				//
+				//Log() << " Verts:";
+				//if (dtype == 1) {
+				//	V6* casted = (V6*)verts;
+				//	sprintf(buff, "%f %f %f",
+				//		casted[indices[0]].Position.x,
+				//		casted[indices[0]].Position.y,
+				//		casted[indices[0]].Position.z);
+				//}
+				//else if (dtype == 2) {
+				//	V6B* casted = (V6B*)verts;
+				//	sprintf(buff, "%f %f %f",
+				//		casted[indices[0]].Position.x,
+				//		casted[indices[0]].Position.y,
+				//		casted[indices[0]].Position.z);
+				//}
+				//else if (dtype == 3) {
+				//	V5* casted = (V5*)verts;
+				//	sprintf(buff, "%f %f %f",
+				//		casted[indices[0]].Position.x,
+				//		casted[indices[0]].Position.y,
+				//		casted[indices[0]].Position.z);
+				//}
+				//else if (dtype == 4) {
+				//	V5B* casted = (V5B*)verts;
+				//	sprintf(buff, "%f %f %f %f",
+				//		casted[indices[0]].Position.x,
+				//		casted[indices[0]].Position.y,
+				//		casted[indices[0]].Position.z,
+				//		casted[indices[0]].Position.w);
+				//}
+				//Log() << "    " << buff;
+
+				//
+				///*
+				//Log() << "    ...";
+				//sprintf(buff, "%f %f %f",
+				//	verts[3 * (primCount - 1) + 0],
+				//	verts[3 * (primCount - 1) + 1],
+				//	verts[3 * (primCount - 1) + 2]);
+				//Log() << "    " << buff;*/
+
+				//delete verts;
+			}
+		}
+		
 		delete indices;
 
 
@@ -570,7 +646,7 @@ HRESULT m_IDirect3DDevice9::DrawIndexedPrimitive(THIS_ D3DPRIMITIVETYPE Type, IN
 		//Log() << "DrawIndexedPrimitive: V " << NumVertices << "  P " << primCount << "  Start " << startIndex;
 	}
 	
-	renderManager.DrawIndexedPrimitive(Type, BaseVertexIndex, MinVertexIndex, NumVertices, startIndex, primCount);
+	//renderManager.DrawIndexedPrimitive(Type, BaseVertexIndex, MinVertexIndex, NumVertices, startIndex, primCount);
 	return ProxyInterface->DrawIndexedPrimitive(Type, BaseVertexIndex, MinVertexIndex, NumVertices, startIndex, primCount);
 }
 
@@ -946,7 +1022,7 @@ void m_IDirect3DDevice9::identifyVertex(IDirect3DVertexDeclaration9* ppDecl, int
 	UINT numElements;
 	ppDecl->GetDeclaration(decl, &numElements);
 	//if (numElements == 6) {
-	Log() << "Identifying declaration: " << numElements;
+	Log() << "  Identifying declaration: " << numElements;
 	for (int ii = 0; ii < numElements - 1; ii++) {
 		int typei = 0;
 		for (typei = 0; typei < 18; typei++) {
@@ -966,8 +1042,6 @@ void m_IDirect3DDevice9::identifyVertex(IDirect3DVertexDeclaration9* ppDecl, int
 		sprintf(buff, "%d: %s  %s", ii, names[typei].c_str(), use_names[usei].c_str());
 		Log() << "   " << buff;
 	}
-
-	return;
 
 	if (numElements == 6) {
 		if (decl[0].Type == static_cast<D3DDECLTYPE>(2)
@@ -1001,6 +1075,16 @@ void m_IDirect3DDevice9::identifyVertex(IDirect3DVertexDeclaration9* ppDecl, int
 			Log() << "Identified: V5 !!!";
 
 			*dtype = 3;
+		}
+
+		if (decl[0].Type == static_cast<D3DDECLTYPE>(3)
+			&& decl[1].Type == static_cast<D3DDECLTYPE>(10)
+			&& decl[2].Type == static_cast<D3DDECLTYPE>(5)
+			&& decl[3].Type == static_cast<D3DDECLTYPE>(8)) {
+
+			Log() << "Identified: V5B !!!";
+
+			*dtype = 4;
 		}
 	}
 	/*else if (numElements == 4) {
