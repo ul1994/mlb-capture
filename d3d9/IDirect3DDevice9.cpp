@@ -529,55 +529,48 @@ HRESULT m_IDirect3DDevice9::DrawIndexedPrimitive(THIS_ D3DPRIMITIVETYPE Type, IN
 					dsize = sizeof(V5B);
 				}
 
-				VOID* verts = malloc(dsize * NumVertices);
+				int memrange = (maxInd - minInd) * dsize;
+				VOID* verts = malloc(memrange);
 
-				validVertex->Lock(0, dsize * NumVertices, &pVoid, 0);
-				memcpy(verts, pVoid, dsize * NumVertices);
+				validVertex->Lock(minInd, memrange, &pVoid, 0);
+				memcpy(verts, pVoid, memrange);
 				validVertex->Unlock();
 
-				//
-				//Log() << " Verts:";
-				//if (dtype == 1) {
-				//	V6* casted = (V6*)verts;
-				//	sprintf(buff, "%f %f %f",
-				//		casted[indices[0]].Position.x,
-				//		casted[indices[0]].Position.y,
-				//		casted[indices[0]].Position.z);
-				//}
-				//else if (dtype == 2) {
-				//	V6B* casted = (V6B*)verts;
-				//	sprintf(buff, "%f %f %f",
-				//		casted[indices[0]].Position.x,
-				//		casted[indices[0]].Position.y,
-				//		casted[indices[0]].Position.z);
-				//}
-				//else if (dtype == 3) {
-				//	V5* casted = (V5*)verts;
-				//	sprintf(buff, "%f %f %f",
-				//		casted[indices[0]].Position.x,
-				//		casted[indices[0]].Position.y,
-				//		casted[indices[0]].Position.z);
-				//}
-				//else if (dtype == 4) {
-				//	V5B* casted = (V5B*)verts;
-				//	sprintf(buff, "%f %f %f %f",
-				//		casted[indices[0]].Position.x,
-				//		casted[indices[0]].Position.y,
-				//		casted[indices[0]].Position.z,
-				//		casted[indices[0]].Position.w);
-				//}
-				//Log() << "    " << buff;
+				
+				Log() << " Verts:";
+				if (dtype == 1) {
+					V6* casted = (V6*)verts;
+					sprintf(buff, "%f %f %f",
+						casted[indices[0]-minInd].Position.x,
+						casted[indices[0] - minInd].Position.y,
+						casted[indices[0] - minInd].Position.z);
+				}
+				else if (dtype == 2) {
+					V6B* casted = (V6B*)verts;
+					sprintf(buff, "%f %f %f",
+						casted[indices[0] - minInd].Position.x,
+						casted[indices[0] - minInd].Position.y,
+						casted[indices[0] - minInd].Position.z);
+				}
+				else if (dtype == 3) {
+					V5* casted = (V5*)verts;
+					sprintf(buff, "%f %f %f",
+						casted[indices[0] - minInd].Position.x,
+						casted[indices[0] - minInd].Position.y,
+						casted[indices[0] - minInd].Position.z);
+				}
+				else if (dtype == 4) {
+					V5B* casted = (V5B*)verts;
+					sprintf(buff, "%f %f %f %f",
+						casted[indices[0] - minInd].Position.x,
+						casted[indices[0] - minInd].Position.y,
+						casted[indices[0] - minInd].Position.z,
+						casted[indices[0] - minInd].Position.w);
+				}
+				Log() << "    " << buff;
 
-				//
-				///*
-				//Log() << "    ...";
-				//sprintf(buff, "%f %f %f",
-				//	verts[3 * (primCount - 1) + 0],
-				//	verts[3 * (primCount - 1) + 1],
-				//	verts[3 * (primCount - 1) + 2]);
-				//Log() << "    " << buff;*/
-
-				//delete verts;
+	
+				delete verts;
 			}
 		}
 		
