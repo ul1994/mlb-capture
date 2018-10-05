@@ -21,11 +21,11 @@ struct V6 {
 	2 : D3DDECLTYPE_SHORT2N
 	3 : D3DDECLTYPE_SHORT4N
 	4 : D3DDECLTYPE_SHORT4N*/
-	D3DXVECTOR3 Position;
-	D3DXVECTOR4_16F p4;
-	FLOAT short2n;    // add up to 32 bits
-	FLOAT short4n, c; // add up to 64 bits
-	FLOAT d, e;       // add up to 64 bits
+	D3DXVECTOR3 Position; // 12
+	D3DXVECTOR4_16F p4;   // 8
+	FLOAT short2n;    // add up to 4 bytes
+	FLOAT a, b; // add up to 8 bits
+	FLOAT d, e;       // add up to 8 bits
 };
 
 struct V6B {
@@ -37,8 +37,8 @@ struct V6B {
 	4 : D3DDECLTYPE_SHORT4N*/
 	D3DXVECTOR3 Position;
 	D3DXVECTOR4_16F p4;
-	D3DXVECTOR2 what;
-	FLOAT short4n, c; // add up to 64 bits
+	FLOAT what;  // 4
+	FLOAT a, b; // add up to 64 bits
 	FLOAT d, e;       // add up to 64 bits
 };
 
@@ -50,8 +50,8 @@ struct V5 {
 	3 : D3DDECLTYPE_SHORT4N*/
 	D3DXVECTOR3 Position;
 	D3DXVECTOR4_16F p4;
-	FLOAT d, e;       // add up to 64 bits
-	FLOAT c, f;       // add up to 64 bits
+	FLOAT d, e;       // 8
+	FLOAT c, f;       // 8
 };
 
 struct V5B {
@@ -60,10 +60,10 @@ struct V5B {
 	1 : D3DDECLTYPE_SHORT4N  D3DDECLUSAGE_TEXCOORD
 	2 : D3DDECLTYPE_UBYTE4  D3DDECLUSAGE_BLENDINDICES
 	3 : D3DDECLTYPE_UBYTE4N  D3DDECLUSAGE_BLENDWEIGHT*/
-	D3DXVECTOR4 Position;
-	FLOAT d, e;       // add up to 64 bits
-	FLOAT c, f;       // add up to 64 bits
-	FLOAT a, b;       // add up to 64 bits
+	D3DXVECTOR4 Position;   // 16
+	FLOAT d, e;       // 8
+	FLOAT a;       // 4
+	FLOAT b;       // 4
 };
 
 

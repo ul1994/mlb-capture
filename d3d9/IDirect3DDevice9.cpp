@@ -543,9 +543,11 @@ HRESULT m_IDirect3DDevice9::DrawIndexedPrimitive(THIS_ D3DPRIMITIVETYPE Type, IN
 					dsize = sizeof(V5B);
 				}
 
-				Log() << " Guess size " << dsize << " vs  Stride " << bufferStride << "   Float size" << sizeof(FLOAT);
+				if (dsize != bufferStride) {
+					Log() << dtype << " Guess size " << dsize << " vs  Stride " << bufferStride << "   Float size" << sizeof(FLOAT);
+				}
 
-				dsize = bufferStride;
+				//dsize = bufferStride;
 				int vertexStartInBytes = dsize * MinVertexIndex;
 				int vertexRange = (maxInd - minInd);
 				int vertexRangeInBytes = dsize * vertexRange;
