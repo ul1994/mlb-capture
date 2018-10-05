@@ -18,6 +18,7 @@
 *.opendb
 *.vcxproj.user
 
+*.mesh
 Release/
 Debug/
 */Release/
