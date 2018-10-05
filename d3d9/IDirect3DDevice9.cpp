@@ -524,16 +524,6 @@ HRESULT m_IDirect3DDevice9::DrawIndexedPrimitive(THIS_ D3DPRIMITIVETYPE Type, IN
 			}
 			Log() << "    Param min: " << MinVertexIndex << "  Act min: " << minInd << "   Max: " << maxInd << "   Range: " << (maxInd - minInd);
 
-
-
-
-			delete indices;
-		}
-		
-
-		
-
-		/*if (minInd >= 0) {
 			int dtype = -1;
 			identifyVertex(vertexType, &dtype);
 
@@ -552,19 +542,26 @@ HRESULT m_IDirect3DDevice9::DrawIndexedPrimitive(THIS_ D3DPRIMITIVETYPE Type, IN
 					dsize = sizeof(V5B);
 				}
 
-				int memrange = (maxInd - minInd) * dsize;
-				VOID* verts = malloc(memrange);
+				int vertexStartInBytes = dsize * MinVertexIndex;
+				int vertexRange = (maxInd - minInd);
+				int vertexRangeInBytes = dsize * vertexRange;
+				HRESULT hr = validVertex->Lock(vertexStartInBytes, vertexRangeInBytes, &pVoid, 0);
+				if (FAILED(hr)) {
+					Log() << "! VERTEX LOCK FAILED";
+				}
+				else {
+					VOID* verts = malloc(vertexRangeInBytes);
+					memcpy(verts, pVoid, vertexRangeInBytes);
+					validVertex->Unlock();
 
-				validVertex->Lock(minInd, memrange, &pVoid, 0);
-				memcpy(verts, pVoid, memrange);
-				validVertex->Unlock();
+					delete verts;
+				}
 
-				
-				Log() << " Verts:";
+				/*Log() << " Verts:";
 				if (dtype == 1) {
 					V6* casted = (V6*)verts;
 					sprintf(buff, "%f %f %f",
-						casted[indices[0]-minInd].Position.x,
+						casted[indices[0] - minInd].Position.x,
 						casted[indices[0] - minInd].Position.y,
 						casted[indices[0] - minInd].Position.z);
 				}
@@ -590,12 +587,16 @@ HRESULT m_IDirect3DDevice9::DrawIndexedPrimitive(THIS_ D3DPRIMITIVETYPE Type, IN
 						casted[indices[0] - minInd].Position.z,
 						casted[indices[0] - minInd].Position.w);
 				}
-				Log() << "    " << buff;
+				Log() << "    " << buff;*/
 
-	
-				delete verts;
+
+				
 			}
-		}*/
+
+
+			delete indices;
+		}
+		
 
 
 		/*if (dtype != -1 && dtype != 4) {
