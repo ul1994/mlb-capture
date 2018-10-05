@@ -478,39 +478,62 @@ HRESULT m_IDirect3DDevice9::DrawIndexedPrimitive(THIS_ D3DPRIMITIVETYPE Type, IN
 	if (NumVertices > 50 && Type == D3DPT_TRIANGLELIST) {
 		Log() << "DrawIndexedPrimitive   V " << NumVertices << ",  S " << startIndex << ",  P " << primCount;
 
-		short* indices = new short[3 * primCount];
+
+		IDirect3DIndexBuffer9* localIndex = NULL;
+		GetIndices(&localIndex);
+
+		
 
 		VOID * pVoid;
-		validIndex->Lock(startIndex, sizeof(short)*3 * primCount, &pVoid, 0);
-		memcpy(indices, pVoid, sizeof(short)*3 * primCount);
-		validIndex->Unlock();
-
 		char buff[256];
-		for (int ii = 0; ii < 1; ii++) {
-			sprintf(buff, "%hu %hu %hu",
-				indices[3 * ii + 0],
-				indices[3 * ii + 1],
-				indices[3 * ii + 2]);
-			Log() << "    " << buff;
+		int startInBytes = sizeof(short) * startIndex;
+		int range = 3 * primCount;
+		int rangeInBytes = sizeof(short) * range;
+		
+		
+		HRESULT hr = localIndex->Lock(startInBytes, rangeInBytes, &pVoid, 0);
+		if (FAILED(hr)) {
+			Log() << "! LOCK FAILED";
 		}
-		Log() << "    ...";
-		for (int ii = 0; ii < 1; ii++) {
-			sprintf(buff, "%hu %hu %hu",
-				indices[3 * (primCount - ii - 1) + 0],
-				indices[3 * (primCount - ii - 1) + 1],
-				indices[3 * (primCount - ii - 1) + 2]);
-			Log() << "    " << buff;
-		}
+		else {
+			short* indices = new short[range];
+			memcpy(indices, pVoid, rangeInBytes);
+			localIndex->Unlock();
 
-		short minInd = indices[0];
-		short maxInd = indices[0];
-		for (int ii = 0; ii < 3 * primCount; ii++) {
-			if (indices[ii] < minInd) minInd = indices[ii];
-			if (indices[ii] > maxInd) maxInd = indices[ii];
-		}
-		Log() << "    Param min: " << MinVertexIndex << "  Act min: " << minInd << "   Max: " << maxInd << "   Range: " << (maxInd - minInd);
+			for (int ii = 0; ii < 1; ii++) {
+				sprintf(buff, "%hu %hu %hu",
+					indices[3 * ii + 0],
+					indices[3 * ii + 1],
+					indices[3 * ii + 2]);
+				Log() << "    " << buff;
+			}
+			Log() << "    ...";
+			for (int ii = 0; ii < 1; ii++) {
+				sprintf(buff, "%hu %hu %hu",
+					indices[3 * (primCount - ii - 1) + 0],
+					indices[3 * (primCount - ii - 1) + 1],
+					indices[3 * (primCount - ii - 1) + 2]);
+				Log() << "    " << buff;
+			}
 
-		if (minInd >= 0) {
+			short minInd = indices[0];
+			short maxInd = indices[0];
+			for (int ii = 0; ii < range; ii++) {
+				if (indices[ii] < minInd) minInd = indices[ii];
+				if (indices[ii] > maxInd) maxInd = indices[ii];
+			}
+			Log() << "    Param min: " << MinVertexIndex << "  Act min: " << minInd << "   Max: " << maxInd << "   Range: " << (maxInd - minInd);
+
+
+
+
+			delete indices;
+		}
+		
+
+		
+
+		/*if (minInd >= 0) {
 			int dtype = -1;
 			identifyVertex(vertexType, &dtype);
 
@@ -572,9 +595,7 @@ HRESULT m_IDirect3DDevice9::DrawIndexedPrimitive(THIS_ D3DPRIMITIVETYPE Type, IN
 	
 				delete verts;
 			}
-		}
-		
-		delete indices;
+		}*/
 
 
 		/*if (dtype != -1 && dtype != 4) {
