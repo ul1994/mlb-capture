@@ -476,7 +476,7 @@ HRESULT m_IDirect3DDevice9::DrawIndexedPrimitive(THIS_ D3DPRIMITIVETYPE Type, IN
 {
 	bool verbose = false;
 	// NumVertices - reflects full size of vertex buffer regardless of which indices are used
-	
+
 	if (NumVertices > 50 && Type == D3DPT_TRIANGLELIST && frameCounter % 10 == 0) {
 		if (verbose) Log() << "DrawIndexedPrimitive   V " << NumVertices << ",  S " << startIndex << ",  P " << primCount;
 
@@ -484,15 +484,14 @@ HRESULT m_IDirect3DDevice9::DrawIndexedPrimitive(THIS_ D3DPRIMITIVETYPE Type, IN
 		IDirect3DIndexBuffer9* localIndex = NULL;
 		GetIndices(&localIndex);
 
-		
+
 
 		VOID * pVoid;
 		char buff[256];
 		int startInBytes = sizeof(short) * startIndex;
 		int range = 3 * primCount;
 		int rangeInBytes = sizeof(short) * range;
-		
-		
+
 		HRESULT hr = localIndex->Lock(startInBytes, rangeInBytes, &pVoid, 0);
 		if (FAILED(hr)) {
 			Log() << "! LOCK FAILED";
@@ -520,11 +519,14 @@ HRESULT m_IDirect3DDevice9::DrawIndexedPrimitive(THIS_ D3DPRIMITIVETYPE Type, IN
 
 			short minInd = indices[0];
 			short maxInd = indices[0];
+			map<int, bool> vertUsage;
 			for (int ii = 0; ii < range; ii++) {
 				if (indices[ii] < minInd) minInd = indices[ii];
 				if (indices[ii] > maxInd) maxInd = indices[ii];
+				vertUsage[indices[ii]] = true;
 			}
 			if (verbose) Log() << "    Param min: " << MinVertexIndex << "  Act min: " << minInd << "   Max: " << maxInd << "   Range: " << (maxInd - minInd);
+			Log() << "    Vert Usage: " << vertUsage.size() << " / " << (maxInd - minInd) << "  " << (int) (vertUsage.size() / (float) (maxInd - minInd) * 100.0) << "%%";
 
 			int dtype = -1;
 			identifyVertex(vertexType, &dtype, verbose);
@@ -583,24 +585,27 @@ HRESULT m_IDirect3DDevice9::DrawIndexedPrimitive(THIS_ D3DPRIMITIVETYPE Type, IN
 					std::ofstream myfile;
 					sprintf(buff, "meshes/%d.mesh", minInd);
 					myfile.open(buff);
-					for (int ii = 0; ii < vertexRange; ii++) {
-						if (dtype == 4) {
-							sprintf(buff, "%f %f %f %f\n",
-								casted[stride * ii + 0],
-								casted[stride * ii + 1],
-								casted[stride * ii + 2],
-								casted[stride * ii + 3]);
-						}
-						else {
-							sprintf(buff, "%f %f %f\n",
-								casted[stride * ii + 0],
-								casted[stride * ii + 1],
-								casted[stride * ii + 2]);
-						}
-						myfile << buff;
-					}
-					myfile.close();
 
+					// for (int ii = 0; ii < 3 * primCount; ii ++) {
+					// 	for (int jj = 0; jj < 3; jj ++) {
+					// 		int vind = indices[3 * ii + jj];
+					// 		if (dtype == 4) {
+					// 			sprintf(buff, "%f %f %f %f\n",
+					// 				casted[stride * vind + 0],
+					// 				casted[stride * vind + 1],
+					// 				casted[stride * vind + 2],
+					// 				casted[stride * vind + 3]);
+					// 		}
+					// 		else {
+					// 			sprintf(buff, "%f %f %f\n",
+					// 				casted[stride * vind + 0],
+					// 				casted[stride * vind + 1],
+					// 				casted[stride * vind + 2]);
+					// 		}
+					// 		myfile << buff;
+					// 	}
+					// }
+					myfile.close();
 
 					delete verts;
 				}
@@ -608,9 +613,9 @@ HRESULT m_IDirect3DDevice9::DrawIndexedPrimitive(THIS_ D3DPRIMITIVETYPE Type, IN
 
 			delete indices;
 		}
-		
+
 	}
-	
+
 	return ProxyInterface->DrawIndexedPrimitive(Type, BaseVertexIndex, MinVertexIndex, NumVertices, startIndex, primCount);
 }
 
@@ -937,7 +942,7 @@ HRESULT m_IDirect3DDevice9::GetVertexShaderConstantI(THIS_ UINT StartRegister, i
 }
 
 HRESULT m_IDirect3DDevice9::SetFVF(THIS_ DWORD FVF)
-{	
+{
 	return ProxyInterface->SetFVF(FVF);
 }
 
