@@ -18,6 +18,7 @@
 
 RenderManager renderManager;
 UINT ConstFloatRegisterCount = 256;
+int frameCounter = 0;
 
 HRESULT m_IDirect3DDevice9::QueryInterface(REFIID riid, void** ppvObj)
 {
@@ -476,7 +477,7 @@ HRESULT m_IDirect3DDevice9::DrawIndexedPrimitive(THIS_ D3DPRIMITIVETYPE Type, IN
 	bool verbose = false;
 	// NumVertices - reflects full size of vertex buffer regardless of which indices are used
 	
-	if (NumVertices > 50 && Type == D3DPT_TRIANGLELIST) {
+	if (NumVertices > 50 && Type == D3DPT_TRIANGLELIST && frameCounter % 10 == 0) {
 		if (verbose) Log() << "DrawIndexedPrimitive   V " << NumVertices << ",  S " << startIndex << ",  P " << primCount;
 
 
@@ -578,7 +579,28 @@ HRESULT m_IDirect3DDevice9::DrawIndexedPrimitive(THIS_ D3DPRIMITIVETYPE Type, IN
 							casted[stride * 0 + 2]);
 					}
 
-					Log() << "  " << buff;
+					//Log() << "  " << buff;
+					std::ofstream myfile;
+					sprintf(buff, "meshes/%d.mesh", minInd);
+					myfile.open(buff);
+					for (int ii = 0; ii < vertexRange; ii++) {
+						if (dtype == 4) {
+							sprintf(buff, "%f %f %f %f\n",
+								casted[stride * ii + 0],
+								casted[stride * ii + 1],
+								casted[stride * ii + 2],
+								casted[stride * ii + 3]);
+						}
+						else {
+							sprintf(buff, "%f %f %f\n",
+								casted[stride * ii + 0],
+								casted[stride * ii + 1],
+								casted[stride * ii + 2]);
+						}
+						myfile << buff;
+					}
+					myfile.close();
+
 
 					delete verts;
 				}
@@ -612,6 +634,8 @@ HRESULT m_IDirect3DDevice9::DrawPrimitiveUP(D3DPRIMITIVETYPE PrimitiveType, UINT
 HRESULT m_IDirect3DDevice9::BeginScene()
 {
 	//Log() << "BeginScene";
+	frameCounter += 1;
+	Log() << "Frame " << frameCounter;
 	return ProxyInterface->BeginScene();
 }
 
