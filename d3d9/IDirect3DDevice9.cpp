@@ -492,6 +492,7 @@ HRESULT m_IDirect3DDevice9::DrawIndexedPrimitive(THIS_ D3DPRIMITIVETYPE Type, IN
 		int range = 3 * primCount;
 		int rangeInBytes = sizeof(short) * range;
 
+		//Log() << " Index: " << localIndex << "  vs  " << validIndex;
 		HRESULT hr = localIndex->Lock(startInBytes, rangeInBytes, &pVoid, 0);
 		if (FAILED(hr)) {
 			Log() << "! LOCK FAILED";
@@ -519,14 +520,15 @@ HRESULT m_IDirect3DDevice9::DrawIndexedPrimitive(THIS_ D3DPRIMITIVETYPE Type, IN
 
 			short minInd = indices[0];
 			short maxInd = indices[0];
-			map<int, bool> vertUsage;
+			std::map<int, bool> vertUsage;
 			for (int ii = 0; ii < range; ii++) {
 				if (indices[ii] < minInd) minInd = indices[ii];
 				if (indices[ii] > maxInd) maxInd = indices[ii];
 				vertUsage[indices[ii]] = true;
 			}
 			if (verbose) Log() << "    Param min: " << MinVertexIndex << "  Act min: " << minInd << "   Max: " << maxInd << "   Range: " << (maxInd - minInd);
-			Log() << "    Vert Usage: " << vertUsage.size() << " / " << (maxInd - minInd) << "  " << (int) (vertUsage.size() / (float) (maxInd - minInd) * 100.0) << "%%";
+			// Vertex usage seems to always be 100%
+			if (verbose) Log() << "    Vert Usage: " << vertUsage.size() << " / " << (maxInd - minInd) << "  " << (int) (vertUsage.size() / (float) (maxInd - minInd) * 100.0) << "%%";
 
 			int dtype = -1;
 			identifyVertex(vertexType, &dtype, verbose);
@@ -551,8 +553,9 @@ HRESULT m_IDirect3DDevice9::DrawIndexedPrimitive(THIS_ D3DPRIMITIVETYPE Type, IN
 				}
 
 				//dsize = bufferStride;
-				int vertexStartInBytes = dsize * MinVertexIndex;
-				int vertexRange = (maxInd - minInd);
+				// FIXME: vertexstartinbytes may shift down 1
+				int vertexStartInBytes = dsize * (MinVertexIndex);
+				int vertexRange = (maxInd - minInd) + 1;
 				int vertexRangeInBytes = dsize * vertexRange;
 				HRESULT hr = validVertex->Lock(vertexStartInBytes, vertexRangeInBytes, &pVoid, 0);
 				if (FAILED(hr)) {
@@ -575,7 +578,7 @@ HRESULT m_IDirect3DDevice9::DrawIndexedPrimitive(THIS_ D3DPRIMITIVETYPE Type, IN
 							casted[stride * 0 + 3]);
 					}
 					else {
-						sprintf(buff, "%f %f %f",
+						sprintf(buff, "v %f %f %f",
 							casted[stride * 0 + 0],
 							casted[stride * 0 + 1],
 							casted[stride * 0 + 2]);
@@ -583,28 +586,27 @@ HRESULT m_IDirect3DDevice9::DrawIndexedPrimitive(THIS_ D3DPRIMITIVETYPE Type, IN
 
 					//Log() << "  " << buff;
 					std::ofstream myfile;
-					sprintf(buff, "meshes/%d.mesh", minInd);
+					sprintf(buff, "meshes/%d_%d.obj", frameCounter, minInd);
 					myfile.open(buff);
 
-					// for (int ii = 0; ii < 3 * primCount; ii ++) {
-					// 	for (int jj = 0; jj < 3; jj ++) {
-					// 		int vind = indices[3 * ii + jj];
-					// 		if (dtype == 4) {
-					// 			sprintf(buff, "%f %f %f %f\n",
-					// 				casted[stride * vind + 0],
-					// 				casted[stride * vind + 1],
-					// 				casted[stride * vind + 2],
-					// 				casted[stride * vind + 3]);
-					// 		}
-					// 		else {
-					// 			sprintf(buff, "%f %f %f\n",
-					// 				casted[stride * vind + 0],
-					// 				casted[stride * vind + 1],
-					// 				casted[stride * vind + 2]);
-					// 		}
-					// 		myfile << buff;
-					// 	}
-					// }
+					stride = dsize / unit;
+					for (int jj = 0; jj < vertexRange; jj++) {
+						sprintf(buff, "v %f %f %f\n",
+							casted[stride * jj + 0],
+							casted[stride * jj + 1],
+							casted[stride * jj + 2]);
+						myfile << buff;
+					}
+
+					stride = sizeof(short);
+					for (int ii = 0; ii < 3 * primCount; ii +=3) {
+						sprintf(buff, "f %d %d %d\n",
+							indices[ii + 0] - MinVertexIndex + 1,
+							indices[ii + 1] - MinVertexIndex + 1,
+							indices[ii + 2] - MinVertexIndex + 1);
+						// 0 shortened
+						myfile << buff;
+					}
 					myfile.close();
 
 					delete verts;
@@ -612,6 +614,7 @@ HRESULT m_IDirect3DDevice9::DrawIndexedPrimitive(THIS_ D3DPRIMITIVETYPE Type, IN
 			}
 
 			delete indices;
+			localIndex->Release();
 		}
 
 	}
@@ -640,7 +643,7 @@ HRESULT m_IDirect3DDevice9::BeginScene()
 {
 	//Log() << "BeginScene";
 	frameCounter += 1;
-	Log() << "Frame " << frameCounter;
+	//Log() << "Frame " << frameCounter;
 	return ProxyInterface->BeginScene();
 }
 
