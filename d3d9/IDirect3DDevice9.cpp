@@ -19,6 +19,7 @@
 RenderManager renderManager;
 UINT ConstFloatRegisterCount = 256;
 int frameCounter = 0;
+boolean ingame = false;
 
 HRESULT m_IDirect3DDevice9::QueryInterface(REFIID riid, void** ppvObj)
 {
@@ -260,6 +261,20 @@ HRESULT m_IDirect3DDevice9::SetRenderTarget(THIS_ DWORD RenderTargetIndex, IDire
 
 HRESULT m_IDirect3DDevice9::SetTransform(D3DTRANSFORMSTATETYPE State, CONST D3DMATRIX *pMatrix)
 {
+	if (ingame) {
+		char buff[256];
+		
+		Log() << "SetTransform  " << State;
+		sprintf(buff, "%f %f %f %f", pMatrix->_11, pMatrix->_12, pMatrix->_13, pMatrix->_14);
+		Log() << "     " << buff;
+		sprintf(buff, "%f %f %f %f", pMatrix->_21, pMatrix->_22, pMatrix->_23, pMatrix->_24);
+		Log() << "     " << buff;
+		sprintf(buff, "%f %f %f %f", pMatrix->_31, pMatrix->_32, pMatrix->_33, pMatrix->_34);
+		Log() << "     " << buff;
+		sprintf(buff, "%f %f %f %f", pMatrix->_41, pMatrix->_42, pMatrix->_43, pMatrix->_44);
+		Log() << "     " << buff;
+
+	}
 	return ProxyInterface->SetTransform(State, pMatrix);
 }
 
@@ -477,8 +492,12 @@ HRESULT m_IDirect3DDevice9::DrawIndexedPrimitive(THIS_ D3DPRIMITIVETYPE Type, IN
 	bool verbose = false;
 	// NumVertices - reflects full size of vertex buffer regardless of which indices are used
 
+	//Log() << "DrawIndexedPrimitive   V " << NumVertices << ",  P " << primCount;
 	if (NumVertices > 50 && Type == D3DPT_TRIANGLELIST && frameCounter % 10 == 0) {
-		if (verbose) Log() << "DrawIndexedPrimitive   V " << NumVertices << ",  S " << startIndex << ",  P " << primCount;
+		// Also signifies that in-game rendering has begun
+		ingame = true;
+	}
+	if (false) {
 
 
 		IDirect3DIndexBuffer9* localIndex = NULL;
@@ -624,18 +643,70 @@ HRESULT m_IDirect3DDevice9::DrawIndexedPrimitive(THIS_ D3DPRIMITIVETYPE Type, IN
 
 HRESULT m_IDirect3DDevice9::DrawIndexedPrimitiveUP(D3DPRIMITIVETYPE PrimitiveType, UINT MinIndex, UINT NumVertices, UINT PrimitiveCount, CONST void *pIndexData, D3DFORMAT IndexDataFormat, CONST void *pVertexStreamZeroData, UINT VertexStreamZeroStride)
 {
-	//Log() << "DrawIndexedPrimitiveUP";
+	if (false) {
+		Log() << "DrawIndexedPrimitiveUP  M " << MinIndex << "   S " << VertexStreamZeroStride << "   F " << IndexDataFormat;
+
+		char buff[256];
+		std::ofstream myfile;
+		sprintf(buff, "meshes/up_%d_%d.obj", frameCounter, NumVertices);
+		myfile.open(buff);
+
+		//D3DXFLOAT16
+		//FLOAV* casted = (UP20*)pVertexStreamZeroData;
+
+		Log() << sizeof(FLOAT) << " " << sizeof(D3DXVECTOR3_16F) << " " << sizeof(D3DXFLOAT16);
+
+		
+		D3DXFLOAT16* vertex = (D3DXFLOAT16*)((char*)pVertexStreamZeroData);
+		FLOAT* asfloats = (FLOAT*)malloc(sizeof(FLOAT) * 20);
+		D3DXFloat16To32Array(asfloats, vertex, 10);
+
+		for (int ii = 0; ii < 16; ii++) {
+			
+			
+
+			Log() << "   " << ii << " "  << asfloats[ii+0] << ", " << (FLOAT)asfloats[ii + 1] << "," << (FLOAT)asfloats[ii + 2];
+
+			
+
+		}
+		delete asfloats;
+		
+		/*int stride = VertexStreamZeroStride;
+		for (int jj = MinIndex; jj < MinIndex+NumVertices; jj++) {
+			D3DXFLOAT16* vertex = (D3DXFLOAT16*)((char*)pVertexStreamZeroData + jj*stride + 2);
+			sprintf(buff, "v %f %f %f\n",
+				(FLOAT) vertex[0],
+				(FLOAT) vertex[1],
+				(FLOAT) vertex[2]);
+			myfile << buff;
+		}*/
+
+
+		LONG* indices = (LONG*) pIndexData;
+		for (int ii = 0; ii < 3 * PrimitiveCount; ii += 3) {
+			sprintf(buff, "f %d %d %d\n",
+				indices[ii + 0] + 1,
+				indices[ii + 1] + 1,
+				indices[ii + 2] + 1);
+			// 0 shortened
+			myfile << buff;
+		}
+		myfile.close();
+	}
 	return ProxyInterface->DrawIndexedPrimitiveUP(PrimitiveType, MinIndex, NumVertices, PrimitiveCount, pIndexData, IndexDataFormat, pVertexStreamZeroData, VertexStreamZeroStride);
 }
 
 HRESULT m_IDirect3DDevice9::DrawPrimitive(D3DPRIMITIVETYPE PrimitiveType, UINT StartVertex, UINT PrimitiveCount)
 {
-	renderManager.DrawPrimitive(PrimitiveType, StartVertex, PrimitiveCount);
+	//renderManager.DrawPrimitive(PrimitiveType, StartVertex, PrimitiveCount);
+	//Log() << "DrawPrimitive  P " << PrimitiveCount;
 	return ProxyInterface->DrawPrimitive(PrimitiveType, StartVertex, PrimitiveCount);
 }
 
 HRESULT m_IDirect3DDevice9::DrawPrimitiveUP(D3DPRIMITIVETYPE PrimitiveType, UINT PrimitiveCount, CONST void *pVertexStreamZeroData, UINT VertexStreamZeroStride)
 {
+	//Log() << "DrawPrimitiveUP  P " << PrimitiveCount;
 	return ProxyInterface->DrawPrimitiveUP(PrimitiveType, PrimitiveCount, pVertexStreamZeroData, VertexStreamZeroStride);
 }
 
@@ -643,7 +714,7 @@ HRESULT m_IDirect3DDevice9::BeginScene()
 {
 	//Log() << "BeginScene";
 	frameCounter += 1;
-	//Log() << "Frame " << frameCounter;
+	Log() << "Frame " << frameCounter;
 	return ProxyInterface->BeginScene();
 }
 

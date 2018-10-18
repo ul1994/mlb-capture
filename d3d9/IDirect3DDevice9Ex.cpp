@@ -255,6 +255,20 @@ HRESULT m_IDirect3DDevice9Ex::SetRenderTarget(THIS_ DWORD RenderTargetIndex, IDi
 
 HRESULT m_IDirect3DDevice9Ex::SetTransform(D3DTRANSFORMSTATETYPE State, CONST D3DMATRIX *pMatrix)
 {
+	if (ingame) {
+		char buff[256];
+		
+		Log() << "SetTransformX  " << State;
+		sprintf(buff, "%f %f %f %f", pMatrix->_11, pMatrix->_12, pMatrix->_13, pMatrix->_14);
+		Log() << "     " << buff;
+		sprintf(buff, "%f %f %f %f", pMatrix->_21, pMatrix->_22, pMatrix->_23, pMatrix->_24);
+		Log() << "     " << buff;
+		sprintf(buff, "%f %f %f %f", pMatrix->_31, pMatrix->_32, pMatrix->_33, pMatrix->_34);
+		Log() << "     " << buff;
+		sprintf(buff, "%f %f %f %f", pMatrix->_41, pMatrix->_42, pMatrix->_43, pMatrix->_44);
+		Log() << "     " << buff;
+
+	}
 	return ProxyInterface->SetTransform(State, pMatrix);
 }
 

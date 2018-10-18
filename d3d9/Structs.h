@@ -66,6 +66,13 @@ struct V5B {
 	FLOAT b;       // 4
 };
 
+struct UP20 {
+	/**/
+	D3DXVECTOR4_16F Position;
+	FLOAT a, b, c;       // 4
+	//FLOAT b;       // 4
+};
+
 
 
 
