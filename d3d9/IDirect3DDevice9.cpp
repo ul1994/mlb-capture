@@ -261,7 +261,7 @@ HRESULT m_IDirect3DDevice9::SetRenderTarget(THIS_ DWORD RenderTargetIndex, IDire
 
 HRESULT m_IDirect3DDevice9::SetTransform(D3DTRANSFORMSTATETYPE State, CONST D3DMATRIX *pMatrix)
 {
-	if (ingame) {
+	/*if (ingame) {
 		char buff[256];
 		
 		Log() << "SetTransform  " << State;
@@ -274,7 +274,7 @@ HRESULT m_IDirect3DDevice9::SetTransform(D3DTRANSFORMSTATETYPE State, CONST D3DM
 		sprintf(buff, "%f %f %f %f", pMatrix->_41, pMatrix->_42, pMatrix->_43, pMatrix->_44);
 		Log() << "     " << buff;
 
-	}
+	}*/
 	return ProxyInterface->SetTransform(State, pMatrix);
 }
 
@@ -489,21 +489,157 @@ HRESULT m_IDirect3DDevice9::Present(CONST RECT *pSourceRect, CONST RECT *pDestRe
 
 HRESULT m_IDirect3DDevice9::DrawIndexedPrimitive(THIS_ D3DPRIMITIVETYPE Type, INT BaseVertexIndex, UINT MinVertexIndex, UINT NumVertices, UINT startIndex, UINT primCount)
 {
-	bool verbose = false;
-	// NumVertices - reflects full size of vertex buffer regardless of which indices are used
-
-	//Log() << "DrawIndexedPrimitive   V " << NumVertices << ",  P " << primCount;
+	bool verbose = true;
 	if (NumVertices > 50 && Type == D3DPT_TRIANGLELIST && frameCounter % 10 == 0) {
-		// Also signifies that in-game rendering has begun
+		// Signifies that in-game rendering has begun
 		ingame = true;
 	}
-	if (false) {
 
+	if (ingame && Type == D3DPT_TRIANGLESTRIP) {
+		Log() << "TriangleStrip  P" << primCount << "  Startind" << startIndex << "  Min "<< MinVertexIndex << "  Base " << BaseVertexIndex;
 
 		IDirect3DIndexBuffer9* localIndex = NULL;
 		GetIndices(&localIndex);
 
+		VOID * pVoid;
+		char buff[256];
+		int startInBytes = sizeof(short) * startIndex;
+		int range = primCount + 2;
+		int rangeInBytes = sizeof(short) * range;
 
+		//Log() << " Index: " << localIndex << "  vs  " << validIndex;
+		HRESULT hr = localIndex->Lock(startInBytes, rangeInBytes, &pVoid, 0);
+		if (FAILED(hr)) {
+			Log() << "! LOCK FAILED";
+		}
+		else {
+			short* indices = new short[range];
+			memcpy(indices, pVoid, rangeInBytes);
+			localIndex->Unlock();
+
+			sprintf(buff, "%hu %hu %hu",
+				indices[0],
+				indices[1],
+				indices[2]);
+			if (verbose) Log() << "    " << buff;
+			if (verbose) Log() << "    ...";
+				sprintf(buff, "%hu %hu %hu",
+				indices[primCount - 3],
+				indices[primCount - 2],
+				indices[primCount - 1]);
+			if (verbose) Log() << "    " << buff;
+
+			short minInd = indices[0];
+			short maxInd = indices[0];
+			std::map<int, bool> vertUsage;
+			for (int ii = 0; ii < range; ii++) {
+				if (indices[ii] < minInd) minInd = indices[ii];
+				if (indices[ii] > maxInd) maxInd = indices[ii];
+				vertUsage[indices[ii]] = true;
+			}
+			if (verbose) Log() << "    Param min: " << MinVertexIndex << "  Act min: " << minInd << "   Max: " << maxInd << "   Range: " << (maxInd - minInd);
+			// Vertex usage seems to always be 100%
+			if (verbose) Log() << "    Vert Usage: " << vertUsage.size() << " / " << (maxInd - minInd) << "  " << (int) (vertUsage.size() / (float) (maxInd - minInd) * 100.0) << "%%";
+			
+			// TriangleStrip Contd.
+			int dtype = -1;
+			identifyVertex(vertexType, &dtype, verbose);
+
+			if (dtype > 0) {
+				int dsize = 0;
+				if (dtype == 1) {
+					dsize = sizeof(V6);
+				}
+				else if (dtype == 2) {
+					dsize = sizeof(V6B);
+				}
+				else if (dtype == 3) {
+					dsize = sizeof(V5);
+				}
+				else if (dtype == 4) {
+					dsize = sizeof(V5B);
+				}
+				else if (dtype == 5) {
+					dsize = sizeof(V4);
+				}
+				else if (dtype == 6) {
+					dsize = sizeof(V4A);
+				}
+
+				if (dsize != bufferStride) {
+					Log() << dtype << " Guess size " << dsize << " vs  Stride " << bufferStride << "   Float size" << sizeof(FLOAT);
+				}
+
+				int vertexStartInBytes = dsize * (MinVertexIndex);
+				int vertexRange = (maxInd - minInd) + 1;
+				int vertexRangeInBytes = dsize * vertexRange;
+				HRESULT hr = validVertex->Lock(vertexStartInBytes, vertexRangeInBytes, &pVoid, 0);
+				if (FAILED(hr)) {
+					Log() << "! VERTEX LOCK FAILED";
+				}
+				else {
+					VOID* verts = malloc(vertexRangeInBytes);
+					memcpy(verts, pVoid, vertexRangeInBytes);
+					validVertex->Unlock();
+
+					FLOAT* casted = (FLOAT*)verts;
+
+					int unit = sizeof(FLOAT);
+					int stride = dsize / unit;
+					if (dtype == 4) {
+						sprintf(buff, "   v %f %f %f %f",
+							casted[stride * 0 + 0],
+							casted[stride * 0 + 1],
+							casted[stride * 0 + 2],
+							casted[stride * 0 + 3]);
+					}
+					else {
+						sprintf(buff, "   v %f %f %f",
+							casted[stride * 0 + 0],
+							casted[stride * 0 + 1],
+							casted[stride * 0 + 2]);
+					}
+
+					Log() << "  " << buff;
+					
+					//std::ofstream myfile;
+					//sprintf(buff, "meshes/%d_%d.obj", frameCounter, minInd);
+					//myfile.open(buff);
+
+					//stride = dsize / unit;
+					//for (int jj = 0; jj < vertexRange; jj++) {
+					//	sprintf(buff, "v %f %f %f\n",
+					//		casted[stride * jj + 0],
+					//		casted[stride * jj + 1],
+					//		casted[stride * jj + 2]);
+					//	myfile << buff;
+					//}
+
+					//stride = sizeof(short);
+					//for (int ii = 0; ii < 3 * primCount; ii +=3) {
+					//	sprintf(buff, "f %d %d %d\n",
+					//		indices[ii + 0] - MinVertexIndex + 1,
+					//		indices[ii + 1] - MinVertexIndex + 1,
+					//		indices[ii + 2] - MinVertexIndex + 1);
+					//	// 0 shortened
+					//	myfile << buff;
+					//}
+					//myfile.close();
+
+					delete verts;
+				}
+			}
+			delete indices;
+			localIndex->Release();
+		}
+
+	}
+	//else if (ingame && Type == D3DPT_TRIANGLELIST) {
+	else if (false) {
+		Log() << "TrianglList  P" << primCount;
+
+		IDirect3DIndexBuffer9* localIndex = NULL;
+		GetIndices(&localIndex);
 
 		VOID * pVoid;
 		char buff[256];
@@ -547,91 +683,91 @@ HRESULT m_IDirect3DDevice9::DrawIndexedPrimitive(THIS_ D3DPRIMITIVETYPE Type, IN
 			}
 			if (verbose) Log() << "    Param min: " << MinVertexIndex << "  Act min: " << minInd << "   Max: " << maxInd << "   Range: " << (maxInd - minInd);
 			// Vertex usage seems to always be 100%
-			if (verbose) Log() << "    Vert Usage: " << vertUsage.size() << " / " << (maxInd - minInd) << "  " << (int) (vertUsage.size() / (float) (maxInd - minInd) * 100.0) << "%%";
+			if (verbose) Log() << "    Vert Usage: " << vertUsage.size() << " / " << (maxInd - minInd) << "  " << (int)(vertUsage.size() / (float)(maxInd - minInd) * 100.0) << "%%";
 
+			// TODO: verify here
+			/*
 			int dtype = -1;
 			identifyVertex(vertexType, &dtype, verbose);
 
 			if (dtype > 0) {
-				int dsize = 0;
-				if (dtype == 1) {
-					dsize = sizeof(V6);
-				}
-				else if (dtype == 2) {
-					dsize = sizeof(V6B);
-				}
-				else if (dtype == 3) {
-					dsize = sizeof(V5);
-				}
-				else if (dtype == 4) {
-					dsize = sizeof(V5B);
-				}
-
-				if (dsize != bufferStride) {
-					Log() << dtype << " Guess size " << dsize << " vs  Stride " << bufferStride << "   Float size" << sizeof(FLOAT);
-				}
-
-				//dsize = bufferStride;
-				// FIXME: vertexstartinbytes may shift down 1
-				int vertexStartInBytes = dsize * (MinVertexIndex);
-				int vertexRange = (maxInd - minInd) + 1;
-				int vertexRangeInBytes = dsize * vertexRange;
-				HRESULT hr = validVertex->Lock(vertexStartInBytes, vertexRangeInBytes, &pVoid, 0);
-				if (FAILED(hr)) {
-					Log() << "! VERTEX LOCK FAILED";
-				}
-				else {
-					VOID* verts = malloc(vertexRangeInBytes);
-					memcpy(verts, pVoid, vertexRangeInBytes);
-					validVertex->Unlock();
-
-					FLOAT* casted = (FLOAT*)verts;
-
-					int unit = sizeof(FLOAT);
-					int stride = dsize / unit;
-					if (dtype == 4) {
-						sprintf(buff, "%f %f %f %f",
-							casted[stride * 0 + 0],
-							casted[stride * 0 + 1],
-							casted[stride * 0 + 2],
-							casted[stride * 0 + 3]);
-					}
-					else {
-						sprintf(buff, "v %f %f %f",
-							casted[stride * 0 + 0],
-							casted[stride * 0 + 1],
-							casted[stride * 0 + 2]);
-					}
-
-					//Log() << "  " << buff;
-					std::ofstream myfile;
-					sprintf(buff, "meshes/%d_%d.obj", frameCounter, minInd);
-					myfile.open(buff);
-
-					stride = dsize / unit;
-					for (int jj = 0; jj < vertexRange; jj++) {
-						sprintf(buff, "v %f %f %f\n",
-							casted[stride * jj + 0],
-							casted[stride * jj + 1],
-							casted[stride * jj + 2]);
-						myfile << buff;
-					}
-
-					stride = sizeof(short);
-					for (int ii = 0; ii < 3 * primCount; ii +=3) {
-						sprintf(buff, "f %d %d %d\n",
-							indices[ii + 0] - MinVertexIndex + 1,
-							indices[ii + 1] - MinVertexIndex + 1,
-							indices[ii + 2] - MinVertexIndex + 1);
-						// 0 shortened
-						myfile << buff;
-					}
-					myfile.close();
-
-					delete verts;
-				}
+			int dsize = 0;
+			if (dtype == 1) {
+			dsize = sizeof(V6);
+			}
+			else if (dtype == 2) {
+			dsize = sizeof(V6B);
+			}
+			else if (dtype == 3) {
+			dsize = sizeof(V5);
+			}
+			else if (dtype == 4) {
+			dsize = sizeof(V5B);
 			}
 
+			if (dsize != bufferStride) {
+			Log() << dtype << " Guess size " << dsize << " vs  Stride " << bufferStride << "   Float size" << sizeof(FLOAT);
+			}
+
+			int vertexStartInBytes = dsize * (MinVertexIndex);
+			int vertexRange = (maxInd - minInd) + 1;
+			int vertexRangeInBytes = dsize * vertexRange;
+			HRESULT hr = validVertex->Lock(vertexStartInBytes, vertexRangeInBytes, &pVoid, 0);
+			if (FAILED(hr)) {
+			Log() << "! VERTEX LOCK FAILED";
+			}
+			else {
+			VOID* verts = malloc(vertexRangeInBytes);
+			memcpy(verts, pVoid, vertexRangeInBytes);
+			validVertex->Unlock();
+
+			FLOAT* casted = (FLOAT*)verts;
+
+			int unit = sizeof(FLOAT);
+			int stride = dsize / unit;
+			if (dtype == 4) {
+			sprintf(buff, "%f %f %f %f",
+			casted[stride * 0 + 0],
+			casted[stride * 0 + 1],
+			casted[stride * 0 + 2],
+			casted[stride * 0 + 3]);
+			}
+			else {
+			sprintf(buff, "v %f %f %f",
+			casted[stride * 0 + 0],
+			casted[stride * 0 + 1],
+			casted[stride * 0 + 2]);
+			}
+
+			//Log() << "  " << buff;
+			std::ofstream myfile;
+			sprintf(buff, "meshes/%d_%d.obj", frameCounter, minInd);
+			myfile.open(buff);
+
+			stride = dsize / unit;
+			for (int jj = 0; jj < vertexRange; jj++) {
+			sprintf(buff, "v %f %f %f\n",
+			casted[stride * jj + 0],
+			casted[stride * jj + 1],
+			casted[stride * jj + 2]);
+			myfile << buff;
+			}
+
+			stride = sizeof(short);
+			for (int ii = 0; ii < 3 * primCount; ii +=3) {
+			sprintf(buff, "f %d %d %d\n",
+			indices[ii + 0] - MinVertexIndex + 1,
+			indices[ii + 1] - MinVertexIndex + 1,
+			indices[ii + 2] - MinVertexIndex + 1);
+			// 0 shortened
+			myfile << buff;
+			}
+			myfile.close();
+
+			delete verts;
+			}
+			}
+			*/
 			delete indices;
 			localIndex->Release();
 		}
@@ -643,7 +779,12 @@ HRESULT m_IDirect3DDevice9::DrawIndexedPrimitive(THIS_ D3DPRIMITIVETYPE Type, IN
 
 HRESULT m_IDirect3DDevice9::DrawIndexedPrimitiveUP(D3DPRIMITIVETYPE PrimitiveType, UINT MinIndex, UINT NumVertices, UINT PrimitiveCount, CONST void *pIndexData, D3DFORMAT IndexDataFormat, CONST void *pVertexStreamZeroData, UINT VertexStreamZeroStride)
 {
+
+	if (ingame ) {
+		Log() << " DrawIndexedPrimitiveUP  T " << PrimitiveType;
+	}
 	if (false) {
+		// FIXME: Incorrect stride
 		Log() << "DrawIndexedPrimitiveUP  M " << MinIndex << "   S " << VertexStreamZeroStride << "   F " << IndexDataFormat;
 
 		char buff[256];
@@ -699,14 +840,27 @@ HRESULT m_IDirect3DDevice9::DrawIndexedPrimitiveUP(D3DPRIMITIVETYPE PrimitiveTyp
 
 HRESULT m_IDirect3DDevice9::DrawPrimitive(D3DPRIMITIVETYPE PrimitiveType, UINT StartVertex, UINT PrimitiveCount)
 {
-	//renderManager.DrawPrimitive(PrimitiveType, StartVertex, PrimitiveCount);
-	//Log() << "DrawPrimitive  P " << PrimitiveCount;
 	return ProxyInterface->DrawPrimitive(PrimitiveType, StartVertex, PrimitiveCount);
 }
 
 HRESULT m_IDirect3DDevice9::DrawPrimitiveUP(D3DPRIMITIVETYPE PrimitiveType, UINT PrimitiveCount, CONST void *pVertexStreamZeroData, UINT VertexStreamZeroStride)
 {
-	//Log() << "DrawPrimitiveUP  P " << PrimitiveCount;
+	// TODO: High volume renders happening here
+	// But they are pointlists?
+	/*if (PrimitiveCount > 100) {
+		Log() << "DrawPrimitiveUP  P " << PrimitiveCount << "  T " << PrimitiveType << "  S " << VertexStreamZeroStride;
+
+		char buff[256];
+		std::ofstream myfile;
+		sprintf(buff, "meshes/up_%d_%d.obj", frameCounter, PrimitiveCount);
+		myfile.open(buff);
+
+		FLOAT* verts = (FLOAT*)pVertexStreamZeroData;
+		for (int ii = 0; ii < 12; ii+=4) {
+			sprintf(buff, "  %d %f %f %f %f", ii, verts[ii + 0], verts[ii + 1], verts[ii + 2], verts[ii + 3]);
+			Log() << "   " << buff;
+		}
+	}*/
 	return ProxyInterface->DrawPrimitiveUP(PrimitiveType, PrimitiveCount, pVertexStreamZeroData, VertexStreamZeroStride);
 }
 
@@ -1138,16 +1292,24 @@ void m_IDirect3DDevice9::identifyVertex(IDirect3DVertexDeclaration9* ppDecl, int
 				*dtype = 4;
 			}
 		}
-		/*else if (numElements == 4) {
-		if (decl[0].Type == static_cast<D3DDECLTYPE>(2)
-		&& decl[1].Type == static_cast<D3DDECLTYPE>(16)
-		&& decl[2].Type == static_cast<D3DDECLTYPE>(10)) {
+		else if (numElements == 4) {
+			if (decl[0].Type == static_cast<D3DDECLTYPE>(2)
+			&& decl[1].Type == static_cast<D3DDECLTYPE>(16)
+			&& decl[2].Type == static_cast<D3DDECLTYPE>(10)) {
 
-		Log() << "Identified: V4 !!!";
+				Log() << "Identified: V4 !!!";
 
-		*dtype = 4;
+				*dtype = 5;
+			}
+			else if (decl[0].Type == static_cast<D3DDECLTYPE>(2)
+				&& decl[1].Type == static_cast<D3DDECLTYPE>(8)
+				&& decl[2].Type == static_cast<D3DDECLTYPE>(5)) {
+
+				Log() << "Identified: V4A !!!";
+
+				*dtype = 6;
+			}
 		}
-		}*/
 	}
 }
 

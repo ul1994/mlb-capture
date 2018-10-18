@@ -14,6 +14,17 @@ struct V4 {
 	FLOAT short4n, c;
 };
 
+
+struct V4A {
+	/*Identifying declaration: 4
+	0: D3DDECLTYPE_FLOAT3
+	1:  D3DDECLTYPE_UBYTE4N
+	2:  D3DDECLTYPE_UBYTE4*/
+	D3DXVECTOR3 Position;
+	FLOAT a;       // 4
+	FLOAT b;       // 4
+};
+
 struct V6 {
 	/*Identifying declaration : 6
 	0 : D3DDECLTYPE_FLOAT3
@@ -64,6 +75,21 @@ struct V5B {
 	FLOAT d, e;       // 8
 	FLOAT a;       // 4
 	FLOAT b;       // 4
+};
+
+struct V6B {
+	/*Identifying declaration : 7
+	0 : D3DDECLTYPE_SHORT4N  D3DDECLUSAGE_POSITION
+	1 : D3DDECLTYPE_SHORT4N  D3DDECLUSAGE_NORMAL
+	2 : D3DDECLTYPE_SHORT4N  D3DDECLUSAGE_TANGENT
+	3 : D3DDECLTYPE_SHORT4N  D3DDECLUSAGE_TEXCOORD
+	4 : D3DDECLTYPE_UBYTE4N  D3DDECLUSAGE_BLENDWEIGHT
+	5 : D3DDECLTYPE_UBYTE4  D3DDECLUSAGE_BLENDINDICES*/
+	D3DXVECTOR3 Position;
+	D3DXVECTOR4_16F p4;
+	FLOAT what;  // 4
+	FLOAT a, b; // add up to 64 bits
+	FLOAT d, e;       // add up to 64 bits
 };
 
 struct UP20 {
