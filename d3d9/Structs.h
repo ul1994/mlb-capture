@@ -77,7 +77,7 @@ struct V5B {
 	FLOAT b;       // 4
 };
 
-struct V6B {
+struct V7 {
 	/*Identifying declaration : 7
 	0 : D3DDECLTYPE_SHORT4N  D3DDECLUSAGE_POSITION
 	1 : D3DDECLTYPE_SHORT4N  D3DDECLUSAGE_NORMAL

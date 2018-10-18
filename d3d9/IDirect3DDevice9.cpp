@@ -504,7 +504,7 @@ HRESULT m_IDirect3DDevice9::DrawIndexedPrimitive(THIS_ D3DPRIMITIVETYPE Type, IN
 		VOID * pVoid;
 		char buff[256];
 		int startInBytes = sizeof(short) * startIndex;
-		int range = primCount + 2;
+		int range = primCount;
 		int rangeInBytes = sizeof(short) * range;
 
 		//Log() << " Index: " << localIndex << "  vs  " << validIndex;
@@ -602,29 +602,28 @@ HRESULT m_IDirect3DDevice9::DrawIndexedPrimitive(THIS_ D3DPRIMITIVETYPE Type, IN
 
 					Log() << "  " << buff;
 					
-					//std::ofstream myfile;
-					//sprintf(buff, "meshes/%d_%d.obj", frameCounter, minInd);
-					//myfile.open(buff);
+					std::ofstream myfile;
+					sprintf(buff, "meshes/frame%d_strip_t%d_%d.obj", frameCounter, dtype, primCount);
+					myfile.open(buff);
 
-					//stride = dsize / unit;
-					//for (int jj = 0; jj < vertexRange; jj++) {
-					//	sprintf(buff, "v %f %f %f\n",
-					//		casted[stride * jj + 0],
-					//		casted[stride * jj + 1],
-					//		casted[stride * jj + 2]);
-					//	myfile << buff;
-					//}
+					stride = dsize / unit;
+					for (int jj = 0; jj < vertexRange; jj++) {
+						sprintf(buff, "v %f %f %f\n",
+							casted[stride * jj + 0],
+							casted[stride * jj + 1],
+							casted[stride * jj + 2]);
+						myfile << buff;
+					}
 
-					//stride = sizeof(short);
-					//for (int ii = 0; ii < 3 * primCount; ii +=3) {
-					//	sprintf(buff, "f %d %d %d\n",
-					//		indices[ii + 0] - MinVertexIndex + 1,
-					//		indices[ii + 1] - MinVertexIndex + 1,
-					//		indices[ii + 2] - MinVertexIndex + 1);
-					//	// 0 shortened
-					//	myfile << buff;
-					//}
-					//myfile.close();
+					stride = sizeof(short);
+					for (int ii = 2; ii < primCount; ii ++) {
+						sprintf(buff, "f %d %d %d\n",
+							indices[ii - 2] - MinVertexIndex + 1,
+							indices[ii - 1] - MinVertexIndex + 1,
+							indices[ii - 0] - MinVertexIndex + 1);
+						myfile << buff;
+					}
+					myfile.close();
 
 					delete verts;
 				}
