@@ -67,6 +67,7 @@ typedef HRESULT(WINAPI *Direct3DCreate9ExProc)(UINT, IDirect3D9Ex **);
 extern boolean ingame;
 extern int frameCounter;
 extern int bufferStride;
+extern float* drawTransform;
 extern std::map<IDirect3DVertexBuffer9*, int> sizeLookup;
 extern IDirect3DVertexDeclaration9* vertexType;
 extern IDirect3DVertexBuffer9* validVertex;

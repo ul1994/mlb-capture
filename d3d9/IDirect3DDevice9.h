@@ -27,8 +27,6 @@ public:
 	virtual LPDIRECT3DDEVICE9 GetProxyInterface() { return ProxyInterface; }
 	AddressLookupTable<m_IDirect3DDevice9> *ProxyAddressLookupTable;
 
-	void identifyVertex(IDirect3DVertexDeclaration9* ppDecl, int* dsize, int* dtype);
-
 	/*** IUnknown methods ***/
 	STDMETHOD(QueryInterface)(THIS_ REFIID riid, void** ppvObj);
 	STDMETHOD_(ULONG, AddRef)(THIS);
@@ -151,4 +149,7 @@ public:
 	STDMETHOD(DrawTriPatch)(THIS_ UINT Handle, CONST float* pNumSegs, CONST D3DTRIPATCH_INFO* pTriPatchInfo);
 	STDMETHOD(DeletePatch)(THIS_ UINT Handle);
 	STDMETHOD(CreateQuery)(THIS_ D3DQUERYTYPE Type, IDirect3DQuery9** ppQuery);
+
+	// NOTE: Custom methods
+	void identifyVertex(IDirect3DVertexDeclaration9* ppDecl, int* dsize, int* dtype);
 };

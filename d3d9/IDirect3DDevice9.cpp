@@ -275,6 +275,7 @@ HRESULT m_IDirect3DDevice9::SetTransform(D3DTRANSFORMSTATETYPE State, CONST D3DM
 		Log() << "     " << buff;
 
 	}*/
+	if (ingame) Log() << "SetTransform";
 	return ProxyInterface->SetTransform(State, pMatrix);
 }
 
@@ -403,6 +404,7 @@ HRESULT m_IDirect3DDevice9::SetMaterial(CONST D3DMATERIAL9 *pMaterial)
 
 HRESULT m_IDirect3DDevice9::MultiplyTransform(D3DTRANSFORMSTATETYPE State, CONST D3DMATRIX *pMatrix)
 {
+	if (ingame) Log() << "MultiplyTransform";
 	return ProxyInterface->MultiplyTransform(State, pMatrix);
 }
 
@@ -487,6 +489,25 @@ HRESULT m_IDirect3DDevice9::Present(CONST RECT *pSourceRect, CONST RECT *pDestRe
 	return ProxyInterface->Present(pSourceRect, pDestRect, hDestWindowOverride, pDirtyRegion);
 }
 
+std::string matrixString(float*matrix, int width, int height, std::string prefix="") {
+	char buff[256];
+	sprintf(buff, "%sMatrix: %d x %d\n", (char*)prefix.c_str(), width, height);
+	
+	std::string out = std::string(buff);
+
+	for (int hh = 0; hh < height; hh++) {
+		out += prefix;
+		for (int ww = 0; ww < width; ww++) {
+			int ind = height * hh + ww;
+			sprintf(buff, "%f ", matrix[ind]);
+			out += std::string(buff);
+		}
+		out += "\n";
+	}
+
+	return out;
+}
+
 HRESULT m_IDirect3DDevice9::DrawIndexedPrimitive(THIS_ D3DPRIMITIVETYPE Type, INT BaseVertexIndex, UINT MinVertexIndex, UINT NumVertices, UINT startIndex, UINT primCount)
 {
 	if (NumVertices > 50 && Type == D3DPT_TRIANGLELIST) {
@@ -495,7 +516,7 @@ HRESULT m_IDirect3DDevice9::DrawIndexedPrimitive(THIS_ D3DPRIMITIVETYPE Type, IN
 	}
 
 	if (ingame && NumVertices > 100 && Type == D3DPT_TRIANGLESTRIP && frameCounter % 10 == 0) {
-		Log() << "TriangleStrip  PCnt " << primCount << "  Nvs " << NumVertices << "  SInd " << startIndex << "  MinV "<< MinVertexIndex << "  BaseV " << BaseVertexIndex;
+		Log() << "TriangleStrip  PCnt " << primCount << "  Nvs " << NumVertices << "  SInd " << startIndex << "  MinV "<< MinVertexIndex;
 
 		IDirect3DIndexBuffer9* localIndex = NULL;
 		GetIndices(&localIndex);
@@ -577,6 +598,11 @@ HRESULT m_IDirect3DDevice9::DrawIndexedPrimitive(THIS_ D3DPRIMITIVETYPE Type, IN
 		sprintf(buff, "meshes/frame%d_strip_t%d_%d.obj", frameCounter, dtype, primCount);
 		myfile.open(buff);
 
+		// debug info
+		sprintf(buff, "# DTYPE %d  DSIZE %d  BUFFSTRIDE %d\n", dtype, dsize, bufferStride);
+		myfile << buff;
+		myfile << matrixString(drawTransform, 4, 3, "# ");
+
 		int stride = dsize / sizeof(FLOAT);
 		for (int jj = 0; jj < vertexRange; jj++) {
 			sprintf(buff, "v %f %f %f\n",
@@ -588,6 +614,8 @@ HRESULT m_IDirect3DDevice9::DrawIndexedPrimitive(THIS_ D3DPRIMITIVETYPE Type, IN
 
 		stride = sizeof(short);
 		for (int ii = 2; ii < primCount; ii ++) {
+			// FIXME: first index not necessarily the CCW triangle.. or is it always?
+			// FIXME: Exclude degenerative (0 area) faces
 			if (ii % 2 == 0) {
 				sprintf(buff, "f %d %d %d\n",
 					indices[ii - 2] - MinVertexIndex + 1,
@@ -607,6 +635,8 @@ HRESULT m_IDirect3DDevice9::DrawIndexedPrimitive(THIS_ D3DPRIMITIVETYPE Type, IN
 
 		delete verts;
 		delete indices;
+
+		MessageBox(NULL, L"TriangleStrip Once", L"ALERT", MB_OK);
 	}
 	else if (ingame && NumVertices > 100 && Type == D3DPT_TRIANGLELIST && frameCounter % 10 == 0) {
 		Log() << "TriangleList   PCnt " << primCount << "  Nvs " << NumVertices << "  SInd " << startIndex << "  MinV " << MinVertexIndex << "  BaseV " << BaseVertexIndex;
@@ -1074,8 +1104,26 @@ HRESULT m_IDirect3DDevice9::GetVertexShaderConstantB(THIS_ UINT StartRegister, B
 	return ProxyInterface->GetVertexShaderConstantB(StartRegister, pConstantData, BoolCount);
 }
 
+float* drawTransform = NULL;
 HRESULT m_IDirect3DDevice9::SetVertexShaderConstantF(THIS_ UINT StartRegister, CONST float* pConstantData, UINT Vector4fCount)
 {
+	if (Vector4fCount != 3) {
+		goto EndSetVertexShaderConstantF;
+	}
+
+	const int registerObjToWorld = 40; // can be found in vertex shader
+	if (ingame && StartRegister == registerObjToWorld) {
+		if (drawTransform != NULL) {
+			delete drawTransform;
+			drawTransform = NULL;
+		}
+
+		int sizeInBytes = sizeof(float) * 4 * Vector4fCount;
+		drawTransform = (float*)malloc(sizeInBytes);
+		memcpy(drawTransform, pConstantData, sizeInBytes);
+	}
+
+EndSetVertexShaderConstantF:
 	return ProxyInterface->SetVertexShaderConstantF(StartRegister, pConstantData, Vector4fCount);
 }
 
