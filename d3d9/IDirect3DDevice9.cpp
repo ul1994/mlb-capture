@@ -608,109 +608,95 @@ HRESULT m_IDirect3DDevice9::DrawIndexedPrimitive(THIS_ D3DPRIMITIVETYPE Type, IN
 		delete verts;
 		delete indices;
 	}
-	//else if (ingame && Type == D3DPT_TRIANGLELIST) {
-	//	Log() << "TriangleList  PCnt" << primCount << "  SInd" << startIndex << "  MinV " << MinVertexIndex << "  BaseV " << BaseVertexIndex;
+	else if (ingame && NumVertices > 100 && Type == D3DPT_TRIANGLELIST && frameCounter % 10 == 0) {
+		Log() << "TriangleList   PCnt " << primCount << "  Nvs " << NumVertices << "  SInd " << startIndex << "  MinV " << MinVertexIndex << "  BaseV " << BaseVertexIndex;
 
-	//	IDirect3DIndexBuffer9* localIndex = NULL;
-	//	GetIndices(&localIndex);
+		IDirect3DIndexBuffer9* localIndex = NULL;
+		GetIndices(&localIndex);
 
-	//	VOID * pVoid;
-	//	char buff[256];
-	//	int startInBytes = sizeof(short) * startIndex;
-	//	int range = 3 * primCount;
-	//	int rangeInBytes = sizeof(short) * range;
+		VOID * pVoid;
+		char buff[256];
+		int startInBytes = sizeof(short) * startIndex;
+		int range = 3 * primCount;
+		int rangeInBytes = sizeof(short) * range;
+		HRESULT hr = localIndex->Lock(startInBytes, rangeInBytes, &pVoid, 0);
+		if (FAILED(hr)) {
+			Log() << "! LOCK FAILED";
+			localIndex->Release();
+			goto EndDrawIndexedPrimitive;
+		}
+		short* indices = new short[range];
+		memcpy(indices, pVoid, rangeInBytes);
+		localIndex->Unlock();
+		localIndex->Release();
 
-	//	//Log() << " Index: " << localIndex << "  vs  " << validIndex;
-	//	HRESULT hr = localIndex->Lock(startInBytes, rangeInBytes, &pVoid, 0);
-	//	if (FAILED(hr)) {
-	//		Log() << "! LOCK FAILED";
-	//	}
-	//	else {
-	//		short* indices = new short[range];
-	//		memcpy(indices, pVoid, rangeInBytes);
-	//		localIndex->Unlock();
+		short minInd = indices[0];
+		short maxInd = indices[0];
+		for (int ii = 0; ii < range; ii++) {
+			if (indices[ii] < minInd) minInd = indices[ii];
+			if (indices[ii] > maxInd) maxInd = indices[ii];
+		}
 
-	//		for (int ii = 0; ii < 1; ii++) {
-	//			sprintf(buff, "%hu %hu %hu",
-	//				indices[3 * ii + 0],
-	//				indices[3 * ii + 1],
-	//				indices[3 * ii + 2]);
-	//			if (verbose) Log() << "    " << buff;
-	//		}
-	//		if (verbose) Log() << "    ...";
-	//		for (int ii = 0; ii < 1; ii++) {
-	//			sprintf(buff, "%hu %hu %hu",
-	//				indices[3 * (primCount - ii - 1) + 0],
-	//				indices[3 * (primCount - ii - 1) + 1],
-	//				indices[3 * (primCount - ii - 1) + 2]);
-	//			if (verbose) Log() << "    " << buff;
-	//		}
+		int dtype = -1;
+		int dsize = -1;
+		identifyVertex(vertexType, &dsize, &dtype);
+		if (dtype == -1) {
+			// UNIDENTIFIED VERTEX TYPE
+			delete indices;
+			goto EndDrawIndexedPrimitive;
+		}
+		
+		int vertexStartInBytes = dsize * (MinVertexIndex);
+		int vertexRange = (maxInd - minInd) + 1;
+		int vertexRangeInBytes = dsize * vertexRange;
+		if (vertexRange != NumVertices) {
+			Log() << "! Index Range Inconsistent";
+			Log() << "  " << indices[0] << " " << indices[range - 1];
+			Log() << "  " << maxInd << " " << minInd << " " << vertexRange << " " << dsize << " " << dtype;
+			delete indices; // only thing in use?
+			goto EndDrawIndexedPrimitive;
+		}
+		hr = validVertex->Lock(vertexStartInBytes, vertexRangeInBytes, &pVoid, 0);
+		if (FAILED(hr)) {
+			Log() << "! VERTEX LOCK FAILED";
+			delete indices; // only thing in use?
+			goto EndDrawIndexedPrimitive;
+		}
+		
+		VOID* verts = malloc(vertexRangeInBytes);
+		memcpy(verts, pVoid, vertexRangeInBytes);
+		validVertex->Unlock();
 
-	//		short minInd = indices[0];
-	//		short maxInd = indices[0];
-	//		std::map<int, bool> vertUsage;
-	//		for (int ii = 0; ii < range; ii++) {
-	//			if (indices[ii] < minInd) minInd = indices[ii];
-	//			if (indices[ii] > maxInd) maxInd = indices[ii];
-	//			vertUsage[indices[ii]] = true;
-	//		}
-	//		if (verbose) Log() << "    Param min: " << MinVertexIndex << "  Act min: " << minInd << "   Max: " << maxInd << "   Range: " << (maxInd - minInd);
-	//		
-	//		int dtype = -1;
-	//		int dsize = -1;
-	//		identifyVertex(vertexType, &dsize, &dtype, verbose);
+		FLOAT* casted = (FLOAT*)verts;
 
-	//		if (dtype != -1) {
-	//			if (dsize != bufferStride) {
-	//				Log() << dtype << " Guess size " << dsize << " vs  Stride " << bufferStride << "   Float size" << sizeof(FLOAT);
-	//			}
+		std::ofstream myfile;
+		sprintf(buff, "meshes/frame%d_list_t%d_%d.obj", frameCounter, dtype, primCount);
+		myfile.open(buff);
 
-	//			int vertexStartInBytes = dsize * (MinVertexIndex);
-	//			int vertexRange = (maxInd - minInd) + 1;
-	//			int vertexRangeInBytes = dsize * vertexRange;
-	//			HRESULT hr = validVertex->Lock(vertexStartInBytes, vertexRangeInBytes, &pVoid, 0);
-	//			if (FAILED(hr)) {
-	//				Log() << "! VERTEX LOCK FAILED";
-	//			}
-	//			else {
-	//				VOID* verts = malloc(vertexRangeInBytes);
-	//				memcpy(verts, pVoid, vertexRangeInBytes);
-	//				validVertex->Unlock();
+		int stride = dsize / sizeof(FLOAT);
+		// NOTE: strided skipping is resilient to inconsistent vertex fields
+		//   unless stride itself is incorrect!
+		for (int jj = 0; jj < vertexRange; jj++) {
+			sprintf(buff, "v %f %f %f\n",
+				casted[stride * jj + 0],
+				casted[stride * jj + 1],
+				casted[stride * jj + 2]);
+			myfile << buff;
+		}
 
-	//				FLOAT* casted = (FLOAT*)verts;
+		stride = sizeof(short); // 
+		for (int ii = 0; ii < 3 * primCount; ii +=3) {
+			sprintf(buff, "f %d %d %d\n",
+				indices[ii + 0] - MinVertexIndex + 1,
+				indices[ii + 1] - MinVertexIndex + 1,
+				indices[ii + 2] - MinVertexIndex + 1);
+			myfile << buff;
+		}
+		myfile.close();
 
-	//				std::ofstream myfile;
-	//				sprintf(buff, "meshes/%d_%d.obj", frameCounter, minInd);
-	//				myfile.open(buff);
-
-	//				int stride = dsize / sizeof(FLOAT);
-	//				// NOTE: strided skipping is resilient to inconsistent vertex fields
-	//				//   unless stride itself is incorrect!
-	//				for (int jj = 0; jj < vertexRange; jj++) {
-	//					sprintf(buff, "v %f %f %f\n",
-	//						casted[stride * jj + 0],
-	//						casted[stride * jj + 1],
-	//						casted[stride * jj + 2]);
-	//					myfile << buff;
-	//				}
-
-	//				stride = sizeof(short); // 
-	//				for (int ii = 0; ii < 3 * primCount; ii +=3) {
-	//					sprintf(buff, "f %d %d %d\n",
-	//						indices[ii + 0] - MinVertexIndex + 1,
-	//						indices[ii + 1] - MinVertexIndex + 1,
-	//						indices[ii + 2] - MinVertexIndex + 1);
-	//					myfile << buff;
-	//				}
-	//				myfile.close();
-
-	//				delete verts;
-	//			}
-	//		}
-	//		delete indices;
-	//		localIndex->Release();
-	//	}
-	//}
+		delete indices;
+		delete verts;
+	}
 	
 EndDrawIndexedPrimitive:
 	return ProxyInterface->DrawIndexedPrimitive(Type, BaseVertexIndex, MinVertexIndex, NumVertices, startIndex, primCount);
