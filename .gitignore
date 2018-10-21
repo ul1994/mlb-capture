@@ -7,7 +7,7 @@
 # Compiled Dynamic libraries
 *.so
 *.dylib
-
+*.ipynb_checkpoints
 # Compiled Static libraries
 *.lai
 *.la

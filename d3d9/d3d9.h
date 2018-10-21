@@ -68,6 +68,7 @@ extern boolean ingame;
 extern int frameCounter;
 extern int bufferStride;
 extern float* drawTransform;
+extern float* scaleAndOffset;
 extern std::map<IDirect3DVertexBuffer9*, int> sizeLookup;
 extern IDirect3DVertexDeclaration9* vertexType;
 extern IDirect3DVertexBuffer9* validVertex;

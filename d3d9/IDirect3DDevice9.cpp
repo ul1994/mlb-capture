@@ -515,7 +515,7 @@ HRESULT m_IDirect3DDevice9::DrawIndexedPrimitive(THIS_ D3DPRIMITIVETYPE Type, IN
 		ingame = true;
 	}
 
-	if (ingame && NumVertices > 100 && Type == D3DPT_TRIANGLESTRIP && frameCounter % 10 == 0) {
+	if (ingame && NumVertices > 100 && Type == D3DPT_TRIANGLESTRIP && frameCounter % 500 == 0) {
 		Log() << "TriangleStrip  PCnt " << primCount << "  Nvs " << NumVertices << "  SInd " << startIndex << "  MinV "<< MinVertexIndex;
 
 		IDirect3DIndexBuffer9* localIndex = NULL;
@@ -601,14 +601,41 @@ HRESULT m_IDirect3DDevice9::DrawIndexedPrimitive(THIS_ D3DPRIMITIVETYPE Type, IN
 		// debug info
 		sprintf(buff, "# DTYPE %d  DSIZE %d  BUFFSTRIDE %d\n", dtype, dsize, bufferStride);
 		myfile << buff;
-		myfile << matrixString(drawTransform, 4, 3, "# ");
+		myfile << matrixString(drawTransform, 4, 4, "# ");
+		if (scaleAndOffset != NULL)
+			myfile << matrixString(scaleAndOffset, 4, 1, "# ");
+		else
+			myfile << "# ScaleAndOffset == NULL\n";
 
 		int stride = dsize / sizeof(FLOAT);
 		for (int jj = 0; jj < vertexRange; jj++) {
+			float vert[3] = { 
+				casted[stride * jj + 0], 
+				casted[stride * jj + 1], 
+				casted[stride * jj + 2] 
+			};
+
+			D3DXVECTOR4 vout(0,0,0,0);
+			D3DXVECTOR4 vin(vert[0], vert[1], vert[2], 1);
+			D3DXMATRIX mat(drawTransform);
+			D3DXVec4Transform(&vout, &vin, &mat);
+			
+			//Log() << vin.x << " " << vin.y << " " << vin.z;
+			//Log() << vout.x << " " << vout.y << " " << vout.z << " " << vout.w;
+			//MessageBox(NULL, L"Transform Result", L"DEBUG", MB_OK);
+			sprintf(buff, "# w %f\n", vout.w);
+			myfile << buff;
+
+			sprintf(buff, "# o %f %f %f\n",
+				vert[0],
+				vert[1],
+				vert[2]);
+			myfile << buff;
+
 			sprintf(buff, "v %f %f %f\n",
-				casted[stride * jj + 0],
-				casted[stride * jj + 1],
-				casted[stride * jj + 2]);
+				vout.x,
+				vout.y,
+				vout.z);
 			myfile << buff;
 		}
 
@@ -636,9 +663,9 @@ HRESULT m_IDirect3DDevice9::DrawIndexedPrimitive(THIS_ D3DPRIMITIVETYPE Type, IN
 		delete verts;
 		delete indices;
 
-		MessageBox(NULL, L"TriangleStrip Once", L"ALERT", MB_OK);
+		//MessageBox(NULL, L"TriangleStrip Once", L"DEBUG", MB_OK);
 	}
-	else if (ingame && NumVertices > 100 && Type == D3DPT_TRIANGLELIST && frameCounter % 10 == 0) {
+	else if (ingame && NumVertices > 100 && Type == D3DPT_TRIANGLELIST && frameCounter % 500 == 0) {
 		Log() << "TriangleList   PCnt " << primCount << "  Nvs " << NumVertices << "  SInd " << startIndex << "  MinV " << MinVertexIndex << "  BaseV " << BaseVertexIndex;
 
 		IDirect3DIndexBuffer9* localIndex = NULL;
@@ -824,6 +851,9 @@ HRESULT m_IDirect3DDevice9::BeginScene()
 	//Log() << "BeginScene";
 	frameCounter += 1;
 	Log() << "Frame " << frameCounter;
+	if (ingame && frameCounter % 500 == 1) {
+		MessageBox(NULL, L"One Frame", L"DEBUG", MB_OK);
+	}
 	return ProxyInterface->BeginScene();
 }
 
@@ -1105,22 +1135,43 @@ HRESULT m_IDirect3DDevice9::GetVertexShaderConstantB(THIS_ UINT StartRegister, B
 }
 
 float* drawTransform = NULL;
+float* scaleAndOffset = NULL;
 HRESULT m_IDirect3DDevice9::SetVertexShaderConstantF(THIS_ UINT StartRegister, CONST float* pConstantData, UINT Vector4fCount)
 {
 	if (Vector4fCount != 3) {
 		goto EndSetVertexShaderConstantF;
 	}
 
-	const int registerObjToWorld = 40; // can be found in vertex shader
+	// can be found in vertex shader
+	const int registerObjToWorld = 40; 
+	const int registerScaleAndOffset = 30;
+
 	if (ingame && StartRegister == registerObjToWorld) {
 		if (drawTransform != NULL) {
 			delete drawTransform;
 			drawTransform = NULL;
 		}
-
-		int sizeInBytes = sizeof(float) * 4 * Vector4fCount;
-		drawTransform = (float*)malloc(sizeInBytes);
+		
+		int rowSize = sizeof(float) * 4;
+		int sizeInBytes = rowSize * Vector4fCount;
+		drawTransform = (float*)malloc(sizeInBytes + rowSize);
 		memcpy(drawTransform, pConstantData, sizeInBytes);
+		
+		// Pad last row for homogenous transform and complete a 4x4 mat
+		drawTransform[4 * 4 - 4] = 0;
+		drawTransform[4 * 4 - 3] = 0;
+		drawTransform[4 * 4 - 2] = 0;
+		drawTransform[4 * 4 - 1] = 1;
+	}
+	else if (ingame && StartRegister == registerScaleAndOffset) {
+		if (scaleAndOffset != NULL) {
+			delete scaleAndOffset;
+			scaleAndOffset = NULL;
+		}
+
+		int sizeInBytes = 4 * sizeof(float);
+		scaleAndOffset = (float*)malloc(sizeInBytes);
+		memcpy(scaleAndOffset, pConstantData, sizeInBytes);
 	}
 
 EndSetVertexShaderConstantF:
