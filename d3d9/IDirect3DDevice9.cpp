@@ -261,21 +261,6 @@ HRESULT m_IDirect3DDevice9::SetRenderTarget(THIS_ DWORD RenderTargetIndex, IDire
 
 HRESULT m_IDirect3DDevice9::SetTransform(D3DTRANSFORMSTATETYPE State, CONST D3DMATRIX *pMatrix)
 {
-	/*if (ingame) {
-		char buff[256];
-		
-		Log() << "SetTransform  " << State;
-		sprintf(buff, "%f %f %f %f", pMatrix->_11, pMatrix->_12, pMatrix->_13, pMatrix->_14);
-		Log() << "     " << buff;
-		sprintf(buff, "%f %f %f %f", pMatrix->_21, pMatrix->_22, pMatrix->_23, pMatrix->_24);
-		Log() << "     " << buff;
-		sprintf(buff, "%f %f %f %f", pMatrix->_31, pMatrix->_32, pMatrix->_33, pMatrix->_34);
-		Log() << "     " << buff;
-		sprintf(buff, "%f %f %f %f", pMatrix->_41, pMatrix->_42, pMatrix->_43, pMatrix->_44);
-		Log() << "     " << buff;
-
-	}*/
-	if (ingame) Log() << "SetTransform";
 	return ProxyInterface->SetTransform(State, pMatrix);
 }
 
@@ -404,7 +389,6 @@ HRESULT m_IDirect3DDevice9::SetMaterial(CONST D3DMATERIAL9 *pMaterial)
 
 HRESULT m_IDirect3DDevice9::MultiplyTransform(D3DTRANSFORMSTATETYPE State, CONST D3DMATRIX *pMatrix)
 {
-	if (ingame) Log() << "MultiplyTransform";
 	return ProxyInterface->MultiplyTransform(State, pMatrix);
 }
 
@@ -508,7 +492,7 @@ std::string matrixString(float*matrix, int width, int height, std::string prefix
 	return out;
 }
 
-void identifyStride(IDirect3DVertexDeclaration9* ppDecl, int *stride, int *postype, char* typeString) {
+void m_IDirect3DDevice9::identifyStride(IDirect3DVertexDeclaration9* ppDecl, int *stride, int *postype, char* typeString) {
 	std::string names[] = {
 		"D3DDECLTYPE_FLOAT1",
 		"D3DDECLTYPE_FLOAT2",
@@ -677,20 +661,6 @@ HRESULT m_IDirect3DDevice9::DrawIndexedPrimitive(THIS_ D3DPRIMITIVETYPE Type, IN
 		localIndex->Unlock();
 		localIndex->Release();
 
-#ifdef VERBOSE
-		sprintf(buff, "%hu %hu %hu",
-			indices[0],
-			indices[1],
-			indices[2]);
-		Log() << "    " << buff;
-		Log() << "    ...";
-		sprintf(buff, "%hu %hu %hu",
-			indices[primCount - 3],
-			indices[primCount - 2],
-			indices[primCount - 1]);
-		Log() << "    " << buff;
-#endif
-		
 		short minInd = indices[0];
 		short maxInd = indices[0];
 		for (int ii = 0; ii < range; ii++) {
@@ -703,7 +673,7 @@ HRESULT m_IDirect3DDevice9::DrawIndexedPrimitive(THIS_ D3DPRIMITIVETYPE Type, IN
 		int posType = -1;
 		char typeString[512];
 		identifyStride(vertexType, &dataStride, &posType, typeString);
-		if (dataStride == -1) {
+		if (dataStride == -1 || posType == 1) {
 			// UNIDENTIFIED VERTEX TYPE
 			delete indices;
 			goto EndDrawIndexedPrimitive;
@@ -711,10 +681,11 @@ HRESULT m_IDirect3DDevice9::DrawIndexedPrimitive(THIS_ D3DPRIMITIVETYPE Type, IN
 
 		if (dataStride != bufferStride) {
 			Log() << typeString;
-			Log() << " Guess size " << dataStride << " vs  Stride " << bufferStride << "   Float size" << sizeof(FLOAT);
-			MessageBox(NULL, L"Stride Mismatch", L"ERROR", MB_OK);
-			delete indices;
-			goto EndDrawIndexedPrimitive;
+			Log() << " WARN: Stride Mismatch: Guessed " << dataStride << " vs  Stride " << bufferStride;
+			MessageBox(NULL, L"Stride Mismatch", L"WARN", MB_OK);
+			/*delete indices;
+			goto EndDrawIndexedPrimitive;*/
+			dataStride = bufferStride; // case when vdata is split across many buffers
 		}
 
 		int vertexStartInBytes = dataStride * (MinVertexIndex);
@@ -759,7 +730,8 @@ HRESULT m_IDirect3DDevice9::DrawIndexedPrimitive(THIS_ D3DPRIMITIVETYPE Type, IN
 				casted = (FLOAT*)offset;
 			}
 			else {
-				casted = D3DXFloat16To32Array(NULL, (D3DXFLOAT16*) offset, 3);
+				casted = (FLOAT*)malloc(sizeof(FLOAT) * 3);
+				D3DXFloat16To32Array(casted, (D3DXFLOAT16*) offset, 3);
 			}
 
 			float vert[] = { casted[0], casted[1], casted[2] };
@@ -1027,8 +999,9 @@ HRESULT m_IDirect3DDevice9::SetStreamSource(THIS_ UINT StreamNumber, IDirect3DVe
 {
 	if (pStreamData)
 	{
-		bufferStride = Stride;
+		if (StreamNumber == 0) bufferStride = Stride;
 		validVertex = pStreamData;
+		//Log() << "SetStreamSource N " << StreamNumber << "  Std " << Stride;
 		pStreamData = static_cast<m_IDirect3DVertexBuffer9 *>(pStreamData)->GetProxyInterface();
 	}
 

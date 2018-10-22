@@ -151,5 +151,5 @@ public:
 	STDMETHOD(CreateQuery)(THIS_ D3DQUERYTYPE Type, IDirect3DQuery9** ppQuery);
 
 	// NOTE: Custom methods
-	void identifyVertex(IDirect3DVertexDeclaration9* ppDecl, int* dsize, int* dtype);
+	void identifyStride(IDirect3DVertexDeclaration9* ppDecl, int *stride, int *postype, char* typeString);
 };
