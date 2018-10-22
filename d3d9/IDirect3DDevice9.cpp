@@ -1203,6 +1203,8 @@ HRESULT m_IDirect3DDevice9::GetFVF(THIS_ DWORD* pFVF)
 	return ProxyInterface->GetFVF(pFVF);
 }
 
+#define VERBOSE_TYPEID
+
 void m_IDirect3DDevice9::identifyVertex(IDirect3DVertexDeclaration9* ppDecl, int* dsize, int* dtype) {
 	std::string names[] = {
 		"D3DDECLTYPE_FLOAT1",
@@ -1332,6 +1334,7 @@ void m_IDirect3DDevice9::identifyVertex(IDirect3DVertexDeclaration9* ppDecl, int
 			Log() << "   " << buff;
 		}
 		Log() << "^^^^^^^^^^^^ UNKNOWN DTYPE ^^^^^^^^^^^^";
+		MessageBox(NULL, L"Unknown Type", L"DEBUG", MB_OK);
 	}
 #endif
 }
