@@ -508,7 +508,7 @@ std::string matrixString(float*matrix, int width, int height, std::string prefix
 	return out;
 }
 
-void identifyStride(IDirect3DVertexDeclaration9* ppDecl, int *stride, int *postype) {
+void identifyStride(IDirect3DVertexDeclaration9* ppDecl, int *stride, int *postype, char* typeString) {
 	std::string names[] = {
 		"D3DDECLTYPE_FLOAT1",
 		"D3DDECLTYPE_FLOAT2",
@@ -595,6 +595,7 @@ void identifyStride(IDirect3DVertexDeclaration9* ppDecl, int *stride, int *posty
 	sprintf(buff, "  Identifying declaration: %d", numElements);
 	typeLog.push_back(std::string(buff));
 
+	std::string debugStr = "";
 	int dynStride = 0;
 	for (int ii = 0; ii < numElements - 1; ii++) {
 		int typei = 0;
@@ -614,7 +615,7 @@ void identifyStride(IDirect3DVertexDeclaration9* ppDecl, int *stride, int *posty
 		dynStride += amount;
 		if (ii == 0) {
 			if (typei == 2 || typei == 3) *postype = 0;
-			else goto CantIdentify;
+			else goto TODOType;
 			//else *postype = 1;
 		}
 
@@ -623,15 +624,28 @@ void identifyStride(IDirect3DVertexDeclaration9* ppDecl, int *stride, int *posty
 	}
 	*stride = dynStride;
 
-	goto EndIdentify;
+	
+	for (int ii = 0; ii < typeLog.size(); ii++) {
+		debugStr += "# ";
+		debugStr += typeLog[ii];
+		debugStr += "\n";
+	}
+	sprintf(typeString, "%s", debugStr.c_str());
+
+	return;
 
 CantIdentify:
 	for (int ii = 0; ii < typeLog.size(); ii++)
 		Log() << typeLog[ii];
 	Log() << "^^^^^^^^^^^^ UNKNOWN DTYPE ^^^^^^^^^^^^";
 	MessageBox(NULL, L"Unknown Type", L"DEBUG", MB_OK);
+	return;
 
-EndIdentify:
+TODOType:
+	for (int ii = 0; ii < typeLog.size(); ii++)
+		Log() << typeLog[ii];
+	Log() << "^^^^^^^^^^^^ SHORT POS VECTOR ^^^^^^^^^^^^";
+	MessageBox(NULL, L"Short Dtype used...", L"DEBUG", MB_OK);
 	return;
 }
 
@@ -688,7 +702,8 @@ HRESULT m_IDirect3DDevice9::DrawIndexedPrimitive(THIS_ D3DPRIMITIVETYPE Type, IN
 		// TriangleStrip Contd.
 		int dataStride = -1;
 		int posType = -1;
-		identifyStride(vertexType, &dataStride, &posType);
+		char typeString[512];
+		identifyStride(vertexType, &dataStride, &posType, typeString);
 		if (dataStride == -1) {
 			// UNIDENTIFIED VERTEX TYPE
 			delete indices;
@@ -728,13 +743,15 @@ HRESULT m_IDirect3DDevice9::DrawIndexedPrimitive(THIS_ D3DPRIMITIVETYPE Type, IN
 
 		// debug info
 		// TODO: Vertex type dump here
-		sprintf(buff, "# STRIDE %d  BUFFSTRIDE %d\n", dataStride, bufferStride);
+		sprintf(buff, "# STRIDE %d  BUFFSTRIDE %d  DTYPE %d\n", dataStride, bufferStride, posType);
 		myfile << buff;
 		myfile << matrixString(drawTransform, 4, 4, "# ");
 		if (scaleAndOffset != NULL)
 			myfile << matrixString(scaleAndOffset, 4, 1, "# ");
 		else
 			myfile << "# ScaleAndOffset == NULL\n";
+
+		myfile << typeString;
 
 		for (int jj = 0; jj < vertexRange; jj++) {
 			VOID* offset = (char*)verts + dataStride * jj;
@@ -785,7 +802,7 @@ HRESULT m_IDirect3DDevice9::DrawIndexedPrimitive(THIS_ D3DPRIMITIVETYPE Type, IN
 		delete verts;
 		delete indices;
 
-		MessageBox(NULL, L"TriangleStrip Once", L"DEBUG", MB_OK);
+		//MessageBox(NULL, L"TriangleStrip Once", L"DEBUG", MB_OK);
 	}
 	else if (ingame && NumVertices > 100 && Type == D3DPT_TRIANGLELIST && frameCounter % 500 == 0) {
 		Log() << "TriangleList   PCnt " << primCount << "  Nvs " << NumVertices << "  SInd " << startIndex << "  MinV " << MinVertexIndex << "  BaseV " << BaseVertexIndex;
@@ -818,7 +835,8 @@ HRESULT m_IDirect3DDevice9::DrawIndexedPrimitive(THIS_ D3DPRIMITIVETYPE Type, IN
 
 		int dataStride = -1;
 		int posType = -1;
-		identifyStride(vertexType, &dataStride, &posType);
+		char typeString[512];
+		identifyStride(vertexType, &dataStride, &posType, typeString);
 		if (dataStride == -1 || posType == -1) {
 			// UNIDENTIFIED VERTEX TYPE
 			// TODO: SHORT2 positions 
@@ -850,6 +868,11 @@ HRESULT m_IDirect3DDevice9::DrawIndexedPrimitive(THIS_ D3DPRIMITIVETYPE Type, IN
 		std::ofstream myfile;
 		sprintf(buff, "meshes/frame%d_list_s%d_%d.obj", frameCounter, dataStride, primCount);
 		myfile.open(buff);
+
+		sprintf(buff, "# STRIDE %d  BUFFSTRIDE %d  DTYPE %d\n", dataStride, bufferStride, posType);
+		myfile << buff;
+
+		myfile << typeString;
 
 		// NOTE: strided skipping is resilient to inconsistent vertex fields
 		//   unless stride itself is incorrect!
