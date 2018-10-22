@@ -590,7 +590,6 @@ void identifyStride(IDirect3DVertexDeclaration9* ppDecl, int *stride, int *posty
 		return;
 	}
 
-
 	std::vector<std::string> typeLog;
 	sprintf(buff, "  Identifying declaration: %d", numElements);
 	typeLog.push_back(std::string(buff));
@@ -615,8 +614,8 @@ void identifyStride(IDirect3DVertexDeclaration9* ppDecl, int *stride, int *posty
 		dynStride += amount;
 		if (ii == 0) {
 			if (typei == 2 || typei == 3) *postype = 0;
-			else goto TODOType;
-			//else *postype = 1;
+			//else goto TODOType;
+			else *postype = 1;
 		}
 
 		sprintf(buff, "   %d: %s  %s", ii, names[typei].c_str(), use_names[usei].c_str());
@@ -711,6 +710,7 @@ HRESULT m_IDirect3DDevice9::DrawIndexedPrimitive(THIS_ D3DPRIMITIVETYPE Type, IN
 		}
 
 		if (dataStride != bufferStride) {
+			Log() << typeString;
 			Log() << " Guess size " << dataStride << " vs  Stride " << bufferStride << "   Float size" << sizeof(FLOAT);
 			MessageBox(NULL, L"Stride Mismatch", L"ERROR", MB_OK);
 			delete indices;
@@ -742,7 +742,6 @@ HRESULT m_IDirect3DDevice9::DrawIndexedPrimitive(THIS_ D3DPRIMITIVETYPE Type, IN
 		myfile.open(buff);
 
 		// debug info
-		// TODO: Vertex type dump here
 		sprintf(buff, "# STRIDE %d  BUFFSTRIDE %d  DTYPE %d\n", dataStride, bufferStride, posType);
 		myfile << buff;
 		myfile << matrixString(drawTransform, 4, 4, "# ");
@@ -754,8 +753,14 @@ HRESULT m_IDirect3DDevice9::DrawIndexedPrimitive(THIS_ D3DPRIMITIVETYPE Type, IN
 		myfile << typeString;
 
 		for (int jj = 0; jj < vertexRange; jj++) {
+			FLOAT* casted = NULL;
 			VOID* offset = (char*)verts + dataStride * jj;
-			FLOAT* casted = (FLOAT*)offset;
+			if (posType == 0) {
+				casted = (FLOAT*)offset;
+			}
+			else {
+				casted = D3DXFloat16To32Array(NULL, (D3DXFLOAT16*) offset, 3);
+			}
 
 			float vert[] = { casted[0], casted[1], casted[2] };
 			D3DXVECTOR4 vout(0, 0, 0, 0);
@@ -777,6 +782,8 @@ HRESULT m_IDirect3DDevice9::DrawIndexedPrimitive(THIS_ D3DPRIMITIVETYPE Type, IN
 				vout.y,
 				vout.z);
 			myfile << buff;
+
+			if (posType == 1) delete casted;
 		}
 
 		for (int ii = 2; ii < primCount; ii ++) {
@@ -804,7 +811,8 @@ HRESULT m_IDirect3DDevice9::DrawIndexedPrimitive(THIS_ D3DPRIMITIVETYPE Type, IN
 
 		//MessageBox(NULL, L"TriangleStrip Once", L"DEBUG", MB_OK);
 	}
-	else if (ingame && NumVertices > 100 && Type == D3DPT_TRIANGLELIST && frameCounter % 500 == 0) {
+	//else if (ingame && NumVertices > 100 && Type == D3DPT_TRIANGLELIST && frameCounter % 500 == 0) {
+	if (false) {
 		Log() << "TriangleList   PCnt " << primCount << "  Nvs " << NumVertices << "  SInd " << startIndex << "  MinV " << MinVertexIndex << "  BaseV " << BaseVertexIndex;
 
 		IDirect3DIndexBuffer9* localIndex = NULL;
