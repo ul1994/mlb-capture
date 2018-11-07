@@ -637,16 +637,18 @@ void m_IDirect3DDevice9::getProcessedVerts(FLOAT** pVerts, int MinVertexIndex, i
 
 	IDirect3DVertexBuffer9 *procBuff = NULL;
 	int sizeInBytes = sizeof(FLOAT) * 4 * NumVertices;
-	HRESULT hr = CreateVertexBuffer(sizeInBytes, 0, D3DFVF_XYZRHW, D3DPOOL_MANAGED, &procBuff, NULL);
+	HRESULT hr = CreateVertexBuffer(
+		sizeInBytes, 
+		0,
+		D3DFVF_XYZRHW, D3DPOOL_MANAGED, &procBuff, NULL);
 	if (FAILED(hr)) Log() << "! PROC CREATE FAILED";
 
-	/*
-	VOID * pVoid;
-	hr = procBuff->Lock(0, 0, &pVoid, 0);
-	memcpy(pVoid, pVerts, sizeInBytes);
+	VOID * pVoid; // move verts to buffer
+	hr = procBuff->Lock(0, sizeInBytes, &pVoid, 0);
+	memcpy(pVoid, *pVerts, sizeInBytes);
 	procBuff->Unlock();
-	*/
 	
+	/*
 	D3DVERTEXELEMENT9 simple_decl[] =
 	{
 		{ 0, 0, D3DDECLTYPE_FLOAT4, D3DDECLMETHOD_DEFAULT, D3DDECLUSAGE_POSITIONT, 0 },
@@ -659,15 +661,10 @@ void m_IDirect3DDevice9::getProcessedVerts(FLOAT** pVerts, int MinVertexIndex, i
 	outdec->Release();
 	//hr = ProcessVertices(MinVertexIndex, 0, NumVertices, procBuff, outdec, 0);
 	if (FAILED(hr)) Log() << "! VERTEX PROC FAILED";
+	*/
 
-	VOID * pVoid;
 	hr = procBuff->Lock(0, sizeInBytes, &pVoid, 0);
-	if (FAILED(hr)) {
-		Log() << "! PROC LOCK FAILED";
-		goto EndProc;
-	}
-
-	*pVerts = (FLOAT*)malloc(sizeInBytes);
+	if (FAILED(hr)) Log() << "! PROC LOCK FAILED";
 	memcpy(*pVerts, pVoid, sizeInBytes);
 	procBuff->Unlock();
 EndProc:
@@ -766,23 +763,24 @@ HRESULT m_IDirect3DDevice9::DrawIndexedPrimitive(THIS_ D3DPRIMITIVETYPE Type, IN
 			vlist[4 * jj + 0] = casted[0];
 			vlist[4 * jj + 1] = casted[1];
 			vlist[4 * jj + 2] = casted[2];
+			vlist[4 * jj + 3] = 0;
 
 			if (posType == 1) delete casted;
 		}
-		delete vlist;
+		//delete vlist;
 
-		
-		FLOAT* pVerts = NULL;
-		getProcessedVerts(&pVerts, MinVertexIndex, NumVertices); // dont forget to clear pVerts
-		if (pVerts != NULL) {
+		//FLOAT* pVerts = NULL;
+		getProcessedVerts(&vlist, MinVertexIndex, NumVertices); // dont forget to clear pVerts
+		//if (pVerts != NULL) {
+		if (true) {
 			Log() << "Printing Pverts";
 			for (int ii = 0; ii < NumVertices; ii++) {
-				sprintf(buff, "%f %f %f %f", pVerts[ii * 4], pVerts[ii * 4 + 1], pVerts[ii * 4 + 2], pVerts[ii * 4 + 3]);
+				sprintf(buff, "%f %f %f %f", vlist[ii * 4], vlist[ii * 4 + 1], vlist[ii * 4 + 2], vlist[ii * 4 + 3]);
 				Log() << buff;
 			}
-			delete pVerts;
+			//delete pVerts;
 		}
-		//delete vlist;
+		delete vlist;
 		
 		std::ofstream myfile;
 		sprintf(buff, "meshes/frame%d_strip_s%d_%d.obj", frameCounter, dataStride, primCount);
