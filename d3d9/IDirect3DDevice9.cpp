@@ -395,7 +395,6 @@ HRESULT m_IDirect3DDevice9::MultiplyTransform(D3DTRANSFORMSTATETYPE State, CONST
 
 HRESULT m_IDirect3DDevice9::ProcessVertices(THIS_ UINT SrcStartIndex, UINT DestIndex, UINT VertexCount, IDirect3DVertexBuffer9* pDestBuffer, IDirect3DVertexDeclaration9* pVertexDecl, DWORD Flags)
 {
-	Log() << "[Process Vertices]";
 	if (pDestBuffer)
 	{
 		pDestBuffer = static_cast<m_IDirect3DVertexBuffer9 *>(pDestBuffer)->GetProxyInterface();
@@ -634,6 +633,47 @@ TODOType:
 	return;
 }
 
+void m_IDirect3DDevice9::getProcessedVerts(FLOAT** pVerts, int MinVertexIndex, int NumVertices) {
+
+	IDirect3DVertexBuffer9 *procBuff = NULL;
+	int sizeInBytes = sizeof(FLOAT) * 4 * NumVertices;
+	HRESULT hr = CreateVertexBuffer(sizeInBytes, 0, D3DFVF_XYZRHW, D3DPOOL_MANAGED, &procBuff, NULL);
+	if (FAILED(hr)) Log() << "! PROC CREATE FAILED";
+
+	/*
+	VOID * pVoid;
+	hr = procBuff->Lock(0, 0, &pVoid, 0);
+	memcpy(pVoid, pVerts, sizeInBytes);
+	procBuff->Unlock();
+	*/
+	
+	D3DVERTEXELEMENT9 simple_decl[] =
+	{
+		{ 0, 0, D3DDECLTYPE_FLOAT4, D3DDECLMETHOD_DEFAULT, D3DDECLUSAGE_POSITIONT, 0 },
+		D3DDECL_END()
+	};
+	IDirect3DVertexDeclaration9* outdec = NULL;
+	hr = CreateVertexDeclaration(simple_decl, &outdec);
+	if (FAILED(hr)) Log() << "! OUT DECL FAILED";
+	hr = ProcessVertices(MinVertexIndex, 0, NumVertices, procBuff, outdec, 0);
+	outdec->Release();
+	//hr = ProcessVertices(MinVertexIndex, 0, NumVertices, procBuff, outdec, 0);
+	if (FAILED(hr)) Log() << "! VERTEX PROC FAILED";
+
+	VOID * pVoid;
+	hr = procBuff->Lock(0, sizeInBytes, &pVoid, 0);
+	if (FAILED(hr)) {
+		Log() << "! PROC LOCK FAILED";
+		goto EndProc;
+	}
+
+	*pVerts = (FLOAT*)malloc(sizeInBytes);
+	memcpy(*pVerts, pVoid, sizeInBytes);
+	procBuff->Unlock();
+EndProc:
+	procBuff->Release();
+}
+
 HRESULT m_IDirect3DDevice9::DrawIndexedPrimitive(THIS_ D3DPRIMITIVETYPE Type, INT BaseVertexIndex, UINT MinVertexIndex, UINT NumVertices, UINT startIndex, UINT primCount)
 {
 	if (NumVertices > 50 && Type == D3DPT_TRIANGLELIST) {
@@ -708,14 +748,42 @@ HRESULT m_IDirect3DDevice9::DrawIndexedPrimitive(THIS_ D3DPRIMITIVETYPE Type, IN
 		}
 		VOID* verts = malloc(vertexRangeInBytes);
 		memcpy(verts, pVoid, vertexRangeInBytes);
-
-		// TODO: ProcessVertices output here
-		IDirect3DVertexBuffer9 *vbuff = NULL;
-		hr = CreateVertexBuffer(vertexRange, 0, D3DFVF_XYZ, D3DPOOL_MANAGED, &vbuff, NULL);
-		hr = ProcessVertices(MinVertexIndex, 0, vertexRange, vbuff, NULL, 0);
 		validVertex->Unlock();
-		vbuff->Release();
 
+		FLOAT * vlist = (FLOAT*)malloc(vertexRangeInBytes);
+		for (int jj = 0; jj < vertexRange; jj++) {
+			FLOAT* casted = NULL;
+			VOID* offset = (char*)verts + dataStride * jj;
+			if (posType == 0) {
+				casted = (FLOAT*)offset;
+			}
+			else {
+				casted = (FLOAT*)malloc(sizeof(FLOAT) * 3);
+				D3DXFloat16To32Array(casted, (D3DXFLOAT16*)offset, 3);
+			}
+
+			FLOAT vert[] = { casted[0], casted[1], casted[2] };
+			vlist[4 * jj + 0] = casted[0];
+			vlist[4 * jj + 1] = casted[1];
+			vlist[4 * jj + 2] = casted[2];
+
+			if (posType == 1) delete casted;
+		}
+		delete vlist;
+
+		
+		FLOAT* pVerts = NULL;
+		getProcessedVerts(&pVerts, MinVertexIndex, NumVertices); // dont forget to clear pVerts
+		if (pVerts != NULL) {
+			Log() << "Printing Pverts";
+			for (int ii = 0; ii < NumVertices; ii++) {
+				sprintf(buff, "%f %f %f %f", pVerts[ii * 4], pVerts[ii * 4 + 1], pVerts[ii * 4 + 2], pVerts[ii * 4 + 3]);
+				Log() << buff;
+			}
+			delete pVerts;
+		}
+		//delete vlist;
+		
 		std::ofstream myfile;
 		sprintf(buff, "meshes/frame%d_strip_s%d_%d.obj", frameCounter, dataStride, primCount);
 		myfile.open(buff);
@@ -731,7 +799,6 @@ HRESULT m_IDirect3DDevice9::DrawIndexedPrimitive(THIS_ D3DPRIMITIVETYPE Type, IN
 			myfile << buff;
 			reg++;
 		}
-
 		myfile << typeString;
 
 		for (int jj = 0; jj < vertexRange; jj++) {
@@ -1273,7 +1340,7 @@ HRESULT m_IDirect3DDevice9::GetVertexShaderConstantB(THIS_ UINT StartRegister, B
 
 HRESULT m_IDirect3DDevice9::SetVertexShaderConstantF(THIS_ UINT StartRegister, CONST float* pConstantData, UINT Vector4fCount)
 {
-	if (ingame) Log() << "SetVertexShaderConstantF  St " << StartRegister << "   N " << Vector4fCount;
+	//if (ingame) Log() << "SetVertexShaderConstantF  St " << StartRegister << "   N " << Vector4fCount;
 	
 	while (vsConstants.size() < StartRegister + Vector4fCount)
 		vsConstants.push_back(D3DXVECTOR4(-1, 0, 0, -1));

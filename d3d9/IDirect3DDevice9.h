@@ -152,4 +152,5 @@ public:
 
 	// NOTE: Custom methods
 	void identifyStride(IDirect3DVertexDeclaration9* ppDecl, int *stride, int *postype, char* typeString);
+	void getProcessedVerts(FLOAT** pVerts, int MinVertexIndex, int VertexCount);
 };

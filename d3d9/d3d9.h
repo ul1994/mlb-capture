@@ -10,6 +10,7 @@
 #include <string>
 #include <iomanip>
 #include <map>
+#include <comdef.h>
 
 #include "..\Common\Wrapper.h"
 #include "..\Common\Logging.h"
