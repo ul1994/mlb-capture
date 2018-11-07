@@ -639,7 +639,7 @@ TODOType:
 void m_IDirect3DDevice9::getProcessedVerts(FLOAT** pVerts, int MinVertexIndex, int NumVertices) {
 
 	IDirect3DVertexBuffer9 *procBuff = NULL;
-	int sizeInBytes = sizeof(FLOAT) * 4 * NumVertices;
+	int sizeInBytes = sizeof(FLOAT) * 4 * NumVertices * 4;
 	HRESULT hr = CreateVertexBuffer(
 		sizeInBytes, 
 		D3DUSAGE_SOFTWAREPROCESSING,
@@ -647,9 +647,11 @@ void m_IDirect3DDevice9::getProcessedVerts(FLOAT** pVerts, int MinVertexIndex, i
 	if (FAILED(hr)) Log() << "! PROC CREATE FAILED";
 
 	VOID * pVoid; // move verts to buffer
+	/*
 	hr = procBuff->Lock(0, sizeInBytes, &pVoid, 0);
 	memcpy(pVoid, *pVerts, sizeInBytes);
 	procBuff->Unlock();
+	*/
 	
 	D3DVERTEXELEMENT9 simple_decl[] =
 	{
@@ -659,12 +661,14 @@ void m_IDirect3DDevice9::getProcessedVerts(FLOAT** pVerts, int MinVertexIndex, i
 	IDirect3DVertexDeclaration9* outdec = NULL;
 	hr = CreateVertexDeclaration(simple_decl, &outdec);
 	if (FAILED(hr)) Log() << "! OUT DECL FAILED";
+
+	hr = procBuff->Lock(0, sizeInBytes, &pVoid, 0);
 	hr = ProcessVertices(MinVertexIndex, 0, NumVertices, procBuff, outdec, 0);
 	outdec->Release();
 	//hr = ProcessVertices(MinVertexIndex, 0, NumVertices, procBuff, outdec, 0);
 	if (FAILED(hr)) Log() << "! VERTEX PROC FAILED";
 
-	hr = procBuff->Lock(0, sizeInBytes, &pVoid, 0);
+	
 	if (FAILED(hr)) Log() << "! PROC LOCK FAILED";
 	memcpy(*pVerts, pVoid, sizeInBytes);
 	procBuff->Unlock();
@@ -748,7 +752,7 @@ HRESULT m_IDirect3DDevice9::DrawIndexedPrimitive(THIS_ D3DPRIMITIVETYPE Type, IN
 		memcpy(verts, pVoid, vertexRangeInBytes);
 		validVertex->Unlock();
 
-		FLOAT * vlist = (FLOAT*)malloc(vertexRangeInBytes);
+		FLOAT * vlist = (FLOAT*)malloc(sizeof(FLOAT) * 4 * NumVertices);
 		for (int jj = 0; jj < vertexRange; jj++) {
 			FLOAT* casted = NULL;
 			VOID* offset = (char*)verts + dataStride * jj;
@@ -868,7 +872,7 @@ HRESULT m_IDirect3DDevice9::DrawIndexedPrimitive(THIS_ D3DPRIMITIVETYPE Type, IN
 		delete verts;
 		delete indices;
 
-		MessageBox(NULL, L"TriangleStrip Once", L"DEBUG", MB_OK);
+		//MessageBox(NULL, L"TriangleStrip Once", L"DEBUG", MB_OK);
 	}
 	//else if (ingame && NumVertices > 100 && Type == D3DPT_TRIANGLELIST && frameCounter % 500 == 0) {
 	if (false) {
@@ -932,6 +936,20 @@ HRESULT m_IDirect3DDevice9::DrawIndexedPrimitive(THIS_ D3DPRIMITIVETYPE Type, IN
 		memcpy(verts, pVoid, vertexRangeInBytes);
 		validVertex->Unlock();
 
+
+		FLOAT * vlist = (FLOAT*)malloc(sizeof(FLOAT) * 4 * NumVertices);
+		for (int jj = 0; jj < vertexRange; jj++) {
+			VOID* offset = (char*)verts + dataStride * jj;
+			FLOAT* casted = (FLOAT*)offset; // only valid for first ~3 inds
+			vlist[4 * jj + 0] = casted[0];
+			vlist[4 * jj + 1] = casted[1];
+			vlist[4 * jj + 2] = casted[2];
+			vlist[4 * jj + 3] = 0;
+		}
+
+		getProcessedVerts(&vlist, MinVertexIndex, NumVertices); // dont forget to clear pVerts
+
+
 		std::ofstream myfile;
 		sprintf(buff, "meshes/frame%d_list_s%d_%d.obj", frameCounter, dataStride, primCount);
 		myfile.open(buff);
@@ -946,6 +964,13 @@ HRESULT m_IDirect3DDevice9::DrawIndexedPrimitive(THIS_ D3DPRIMITIVETYPE Type, IN
 		for (int jj = 0; jj < vertexRange; jj++) {
 			VOID* offset = (char*)verts + dataStride * jj;
 			FLOAT* casted = (FLOAT*)offset; // only valid for first ~3 inds
+
+			sprintf(buff, "# p %f %f %f\n",
+				vlist[4 * jj + 0],
+				vlist[4 * jj + 1],
+				vlist[4 * jj + 2]);
+			myfile << buff;
+
 			sprintf(buff, "v %f %f %f\n",
 				casted[0],
 				casted[1],
@@ -962,6 +987,7 @@ HRESULT m_IDirect3DDevice9::DrawIndexedPrimitive(THIS_ D3DPRIMITIVETYPE Type, IN
 		}
 		myfile.close();
 
+		delete vlist;
 		delete indices;
 		delete verts;
 	}
