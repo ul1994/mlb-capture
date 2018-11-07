@@ -157,7 +157,10 @@ HRESULT m_IDirect3DDevice9::CreateTexture(THIS_ UINT Width, UINT Height, UINT Le
 
 HRESULT m_IDirect3DDevice9::CreateVertexBuffer(THIS_ UINT Length, DWORD Usage, DWORD FVF, D3DPOOL Pool, IDirect3DVertexBuffer9** ppVertexBuffer, HANDLE* pSharedHandle)
 {
-	HRESULT hr = ProxyInterface->CreateVertexBuffer(Length, Usage, FVF, Pool, ppVertexBuffer, pSharedHandle);
+	HRESULT hr = ProxyInterface->CreateVertexBuffer(Length, 
+		//Usage, 
+		D3DUSAGE_SOFTWAREPROCESSING,
+		FVF, Pool, ppVertexBuffer, pSharedHandle);
 
 	if (SUCCEEDED(hr) && ppVertexBuffer)
 	{
@@ -639,7 +642,7 @@ void m_IDirect3DDevice9::getProcessedVerts(FLOAT** pVerts, int MinVertexIndex, i
 	int sizeInBytes = sizeof(FLOAT) * 4 * NumVertices;
 	HRESULT hr = CreateVertexBuffer(
 		sizeInBytes, 
-		0,
+		D3DUSAGE_SOFTWAREPROCESSING,
 		D3DFVF_XYZRHW, D3DPOOL_MANAGED, &procBuff, NULL);
 	if (FAILED(hr)) Log() << "! PROC CREATE FAILED";
 
@@ -648,7 +651,6 @@ void m_IDirect3DDevice9::getProcessedVerts(FLOAT** pVerts, int MinVertexIndex, i
 	memcpy(pVoid, *pVerts, sizeInBytes);
 	procBuff->Unlock();
 	
-	/*
 	D3DVERTEXELEMENT9 simple_decl[] =
 	{
 		{ 0, 0, D3DDECLTYPE_FLOAT4, D3DDECLMETHOD_DEFAULT, D3DDECLUSAGE_POSITIONT, 0 },
@@ -661,7 +663,6 @@ void m_IDirect3DDevice9::getProcessedVerts(FLOAT** pVerts, int MinVertexIndex, i
 	outdec->Release();
 	//hr = ProcessVertices(MinVertexIndex, 0, NumVertices, procBuff, outdec, 0);
 	if (FAILED(hr)) Log() << "! VERTEX PROC FAILED";
-	*/
 
 	hr = procBuff->Lock(0, sizeInBytes, &pVoid, 0);
 	if (FAILED(hr)) Log() << "! PROC LOCK FAILED";
@@ -772,6 +773,7 @@ HRESULT m_IDirect3DDevice9::DrawIndexedPrimitive(THIS_ D3DPRIMITIVETYPE Type, IN
 		//FLOAT* pVerts = NULL;
 		getProcessedVerts(&vlist, MinVertexIndex, NumVertices); // dont forget to clear pVerts
 		//if (pVerts != NULL) {
+		/*
 		if (true) {
 			Log() << "Printing Pverts";
 			for (int ii = 0; ii < NumVertices; ii++) {
@@ -780,7 +782,8 @@ HRESULT m_IDirect3DDevice9::DrawIndexedPrimitive(THIS_ D3DPRIMITIVETYPE Type, IN
 			}
 			//delete pVerts;
 		}
-		delete vlist;
+		*/
+		
 		
 		std::ofstream myfile;
 		sprintf(buff, "meshes/frame%d_strip_s%d_%d.obj", frameCounter, dataStride, primCount);
@@ -826,6 +829,12 @@ HRESULT m_IDirect3DDevice9::DrawIndexedPrimitive(THIS_ D3DPRIMITIVETYPE Type, IN
 				vert[2]);
 			myfile << buff;
 
+			sprintf(buff, "# p %f %f %f\n",
+				vlist[4 * jj + 0],
+				vlist[4 * jj + 1],
+				vlist[4 * jj + 2]);
+			myfile << buff;
+
 			sprintf(buff, "v %f %f %f\n",
 				vout.x,
 				vout.y,
@@ -855,6 +864,7 @@ HRESULT m_IDirect3DDevice9::DrawIndexedPrimitive(THIS_ D3DPRIMITIVETYPE Type, IN
 		}
 		myfile.close();
 
+		delete vlist;
 		delete verts;
 		delete indices;
 
@@ -1074,6 +1084,7 @@ IDirect3DVertexBuffer9* validVertex = NULL;
 int bufferStride = 0;
 HRESULT m_IDirect3DDevice9::SetStreamSource(THIS_ UINT StreamNumber, IDirect3DVertexBuffer9* pStreamData, UINT OffsetInBytes, UINT Stride)
 {
+	Log() << "SetStream " << StreamNumber;
 	if (pStreamData)
 	{
 		if (StreamNumber == 0) bufferStride = Stride;

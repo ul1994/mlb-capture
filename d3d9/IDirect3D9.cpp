@@ -116,7 +116,11 @@ IDirect3DDevice9* m_IDirect3DDevice9::device = NULL;
 
 HRESULT m_IDirect3D9::CreateDevice(UINT Adapter, D3DDEVTYPE DeviceType, HWND hFocusWindow, DWORD BehaviorFlags, D3DPRESENT_PARAMETERS *pPresentationParameters, IDirect3DDevice9 **ppReturnedDeviceInterface)
 {
-	HRESULT hr = ProxyInterface->CreateDevice(Adapter, DeviceType, hFocusWindow, BehaviorFlags, pPresentationParameters, ppReturnedDeviceInterface);
+	HRESULT hr = ProxyInterface->CreateDevice(
+		Adapter, DeviceType, hFocusWindow, 
+		//BehaviorFlags, 
+		D3DCREATE_MIXED_VERTEXPROCESSING,
+		pPresentationParameters, ppReturnedDeviceInterface);
 
 	// TODO: Device creation
 	if (SUCCEEDED(hr) && ppReturnedDeviceInterface)
