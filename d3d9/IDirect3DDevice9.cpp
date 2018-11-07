@@ -20,6 +20,7 @@ RenderManager renderManager;
 UINT ConstFloatRegisterCount = 256;
 int frameCounter = 0;
 boolean ingame = false;
+std::vector<D3DXVECTOR4> vsConstants;
 
 HRESULT m_IDirect3DDevice9::QueryInterface(REFIID riid, void** ppvObj)
 {
@@ -394,6 +395,7 @@ HRESULT m_IDirect3DDevice9::MultiplyTransform(D3DTRANSFORMSTATETYPE State, CONST
 
 HRESULT m_IDirect3DDevice9::ProcessVertices(THIS_ UINT SrcStartIndex, UINT DestIndex, UINT VertexCount, IDirect3DVertexBuffer9* pDestBuffer, IDirect3DVertexDeclaration9* pVertexDecl, DWORD Flags)
 {
+	Log() << "[Process Vertices]";
 	if (pDestBuffer)
 	{
 		pDestBuffer = static_cast<m_IDirect3DVertexBuffer9 *>(pDestBuffer)->GetProxyInterface();
@@ -706,7 +708,13 @@ HRESULT m_IDirect3DDevice9::DrawIndexedPrimitive(THIS_ D3DPRIMITIVETYPE Type, IN
 		}
 		VOID* verts = malloc(vertexRangeInBytes);
 		memcpy(verts, pVoid, vertexRangeInBytes);
+
+		// TODO: ProcessVertices output here
+		IDirect3DVertexBuffer9 *vbuff = NULL;
+		hr = CreateVertexBuffer(vertexRange, 0, D3DFVF_XYZ, D3DPOOL_MANAGED, &vbuff, NULL);
+		hr = ProcessVertices(MinVertexIndex, 0, vertexRange, vbuff, NULL, 0);
 		validVertex->Unlock();
+		vbuff->Release();
 
 		std::ofstream myfile;
 		sprintf(buff, "meshes/frame%d_strip_s%d_%d.obj", frameCounter, dataStride, primCount);
@@ -715,11 +723,14 @@ HRESULT m_IDirect3DDevice9::DrawIndexedPrimitive(THIS_ D3DPRIMITIVETYPE Type, IN
 		// debug info
 		sprintf(buff, "# STRIDE %d  BUFFSTRIDE %d  DTYPE %d\n", dataStride, bufferStride, posType);
 		myfile << buff;
-		myfile << matrixString(drawTransform, 4, 4, "# ");
-		if (scaleAndOffset != NULL)
-			myfile << matrixString(scaleAndOffset, 4, 1, "# ");
-		else
-			myfile << "# ScaleAndOffset == NULL\n";
+
+		myfile << "# Constants:";
+		for (int reg = 0; reg < vsConstants.size(); reg++) {
+			D3DXVECTOR4 vec = vsConstants[reg];
+			sprintf(buff, "# %d %f %f %f %f\n", reg, vec.x, vec.y, vec.z, vec.w);
+			myfile << buff;
+			reg++;
+		}
 
 		myfile << typeString;
 
@@ -735,10 +746,11 @@ HRESULT m_IDirect3DDevice9::DrawIndexedPrimitive(THIS_ D3DPRIMITIVETYPE Type, IN
 			}
 
 			float vert[] = { casted[0], casted[1], casted[2] };
-			D3DXVECTOR4 vout(0, 0, 0, 0);
+			/*D3DXVECTOR4 vout(0, 0, 0, 0);
 			D3DXVECTOR4 vin(vert[0], vert[1], vert[2], 1);
 			D3DXMATRIX mat(drawTransform);
-			D3DXVec4Transform(&vout, &vin, &mat);
+			D3DXVec4Transform(&vout, &vin, &mat);*/
+			D3DXVECTOR4 vout = vert;
 			
 			sprintf(buff, "# w %f\n", vout.w);
 			myfile << buff;
@@ -781,7 +793,7 @@ HRESULT m_IDirect3DDevice9::DrawIndexedPrimitive(THIS_ D3DPRIMITIVETYPE Type, IN
 		delete verts;
 		delete indices;
 
-		//MessageBox(NULL, L"TriangleStrip Once", L"DEBUG", MB_OK);
+		MessageBox(NULL, L"TriangleStrip Once", L"DEBUG", MB_OK);
 	}
 	//else if (ingame && NumVertices > 100 && Type == D3DPT_TRIANGLELIST && frameCounter % 500 == 0) {
 	if (false) {
@@ -1259,47 +1271,22 @@ HRESULT m_IDirect3DDevice9::GetVertexShaderConstantB(THIS_ UINT StartRegister, B
 	return ProxyInterface->GetVertexShaderConstantB(StartRegister, pConstantData, BoolCount);
 }
 
-float* drawTransform = NULL;
-float* scaleAndOffset = NULL;
 HRESULT m_IDirect3DDevice9::SetVertexShaderConstantF(THIS_ UINT StartRegister, CONST float* pConstantData, UINT Vector4fCount)
 {
-	if (Vector4fCount != 3) {
-		goto EndSetVertexShaderConstantF;
-	}
+	if (ingame) Log() << "SetVertexShaderConstantF  St " << StartRegister << "   N " << Vector4fCount;
+	
+	while (vsConstants.size() < StartRegister + Vector4fCount)
+		vsConstants.push_back(D3DXVECTOR4(-1, 0, 0, -1));
 
-	// can be found in vertex shader
-	const int registerObjToWorld = 40; 
-	const int registerScaleAndOffset = 30;
-
-	if (ingame && StartRegister == registerObjToWorld) {
-		if (drawTransform != NULL) {
-			delete drawTransform;
-			drawTransform = NULL;
-		}
+	for (int ii = 0; ii < Vector4fCount; ii++) {
+		int offset = 4 * ii;
 		
-		int rowSize = sizeof(float) * 4;
-		int sizeInBytes = rowSize * Vector4fCount;
-		drawTransform = (float*)malloc(sizeInBytes + rowSize);
-		memcpy(drawTransform, pConstantData, sizeInBytes);
-		
-		// Pad last row for homogenous transform and complete a 4x4 mat
-		drawTransform[4 * 4 - 4] = 0;
-		drawTransform[4 * 4 - 3] = 0;
-		drawTransform[4 * 4 - 2] = 0;
-		drawTransform[4 * 4 - 1] = 1;
-	}
-	else if (ingame && StartRegister == registerScaleAndOffset) {
-		if (scaleAndOffset != NULL) {
-			delete scaleAndOffset;
-			scaleAndOffset = NULL;
-		}
-
-		int sizeInBytes = 4 * sizeof(float);
-		scaleAndOffset = (float*)malloc(sizeInBytes);
-		memcpy(scaleAndOffset, pConstantData, sizeInBytes);
+		vsConstants[StartRegister].x = pConstantData[offset + 0];
+		vsConstants[StartRegister].y = pConstantData[offset + 1];
+		vsConstants[StartRegister].z = pConstantData[offset + 2];
+		vsConstants[StartRegister].w = pConstantData[offset + 3];
 	}
 
-EndSetVertexShaderConstantF:
 	return ProxyInterface->SetVertexShaderConstantF(StartRegister, pConstantData, Vector4fCount);
 }
 
