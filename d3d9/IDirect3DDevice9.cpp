@@ -733,6 +733,7 @@ HRESULT m_IDirect3DDevice9::DrawIndexedPrimitive(THIS_ D3DPRIMITIVETYPE Type, IN
 		}
 		if (blendOffset == -1) {
 			// Static Mesh
+			Log() << typeString;
 			delete indices;
 			goto EndDrawIndexedPrimitive;
 		}
@@ -950,62 +951,6 @@ EndDrawIndexedPrimitive:
 
 HRESULT m_IDirect3DDevice9::DrawIndexedPrimitiveUP(D3DPRIMITIVETYPE PrimitiveType, UINT MinIndex, UINT NumVertices, UINT PrimitiveCount, CONST void *pIndexData, D3DFORMAT IndexDataFormat, CONST void *pVertexStreamZeroData, UINT VertexStreamZeroStride)
 {
-
-	if (ingame ) {
-		Log() << " DrawIndexedPrimitiveUP  T " << PrimitiveType;
-	}
-	if (false) {
-		// FIXME: Incorrect stride
-		Log() << "DrawIndexedPrimitiveUP  M " << MinIndex << "   S " << VertexStreamZeroStride << "   F " << IndexDataFormat;
-
-		char buff[256];
-		std::ofstream myfile;
-		sprintf(buff, "meshes/up_%d_%d.obj", frameCounter, NumVertices);
-		myfile.open(buff);
-
-		//D3DXFLOAT16
-		//FLOAV* casted = (UP20*)pVertexStreamZeroData;
-
-		Log() << sizeof(FLOAT) << " " << sizeof(D3DXVECTOR3_16F) << " " << sizeof(D3DXFLOAT16);
-
-		
-		D3DXFLOAT16* vertex = (D3DXFLOAT16*)((char*)pVertexStreamZeroData);
-		FLOAT* asfloats = (FLOAT*)malloc(sizeof(FLOAT) * 20);
-		D3DXFloat16To32Array(asfloats, vertex, 10);
-
-		for (int ii = 0; ii < 16; ii++) {
-			
-			
-
-			Log() << "   " << ii << " "  << asfloats[ii+0] << ", " << (FLOAT)asfloats[ii + 1] << "," << (FLOAT)asfloats[ii + 2];
-
-			
-
-		}
-		delete asfloats;
-		
-		/*int stride = VertexStreamZeroStride;
-		for (int jj = MinIndex; jj < MinIndex+NumVertices; jj++) {
-			D3DXFLOAT16* vertex = (D3DXFLOAT16*)((char*)pVertexStreamZeroData + jj*stride + 2);
-			sprintf(buff, "v %f %f %f\n",
-				(FLOAT) vertex[0],
-				(FLOAT) vertex[1],
-				(FLOAT) vertex[2]);
-			myfile << buff;
-		}*/
-
-
-		LONG* indices = (LONG*) pIndexData;
-		for (int ii = 0; ii < 3 * PrimitiveCount; ii += 3) {
-			sprintf(buff, "f %d %d %d\n",
-				indices[ii + 0] + 1,
-				indices[ii + 1] + 1,
-				indices[ii + 2] + 1);
-			// 0 shortened
-			myfile << buff;
-		}
-		myfile.close();
-	}
 	return ProxyInterface->DrawIndexedPrimitiveUP(PrimitiveType, MinIndex, NumVertices, PrimitiveCount, pIndexData, IndexDataFormat, pVertexStreamZeroData, VertexStreamZeroStride);
 }
 
