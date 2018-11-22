@@ -19,6 +19,7 @@
 RenderManager renderManager;
 UINT ConstFloatRegisterCount = 256;
 int frameCounter = 0;
+int objCounter = 0;
 boolean ingame = false;
 std::vector<D3DXVECTOR4> vsConstants;
 
@@ -767,7 +768,7 @@ HRESULT m_IDirect3DDevice9::DrawIndexedPrimitive(THIS_ D3DPRIMITIVETYPE Type, IN
 		validVertex->Unlock();
 		
 		std::ofstream myfile;
-		sprintf(buff, "meshes/frame%d_strip_s%d_%d.obj", frameCounter, dataStride, primCount);
+		sprintf(buff, "meshes/frame%d_strip_o%d_s%d_%d.obj", frameCounter, objCounter, dataStride, primCount);
 		myfile.open(buff);
 
 		// debug info
@@ -945,6 +946,7 @@ HRESULT m_IDirect3DDevice9::DrawIndexedPrimitive(THIS_ D3DPRIMITIVETYPE Type, IN
 		delete verts;
 	}
 	
+	objCounter++;
 EndDrawIndexedPrimitive:
 	return ProxyInterface->DrawIndexedPrimitive(Type, BaseVertexIndex, MinVertexIndex, NumVertices, startIndex, primCount);
 }
@@ -984,6 +986,7 @@ HRESULT m_IDirect3DDevice9::BeginScene()
 {
 	//Log() << "BeginScene";
 	frameCounter += 1;
+	objCounter = 0;
 	Log() << "Frame " << frameCounter;
 	if (ingame && frameCounter % 500 == 1) {
 		MessageBox(NULL, L"One Frame", L"DEBUG", MB_OK);
