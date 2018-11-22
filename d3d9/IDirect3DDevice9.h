@@ -151,6 +151,8 @@ public:
 	STDMETHOD(CreateQuery)(THIS_ D3DQUERYTYPE Type, IDirect3DQuery9** ppQuery);
 
 	// NOTE: Custom methods
-	void identifyStride(IDirect3DVertexDeclaration9* ppDecl, int *stride, int *postype, char* typeString);
+	void identifyStride(
+		IDirect3DVertexDeclaration9* ppDecl, int *stride, int *postype, char* typeString,
+		int* blendOffset);
 	void getProcessedVerts(FLOAT** pVerts, int MinVertexIndex, int VertexCount);
 };

@@ -496,7 +496,11 @@ std::string matrixString(float*matrix, int width, int height, std::string prefix
 	return out;
 }
 
-void m_IDirect3DDevice9::identifyStride(IDirect3DVertexDeclaration9* ppDecl, int *stride, int *postype, char* typeString) {
+void m_IDirect3DDevice9::identifyStride(
+	IDirect3DVertexDeclaration9* ppDecl, 
+	int *stride, int *postype, char* typeString,
+	int *blendOffset) {
+
 	std::string names[] = {
 		"D3DDECLTYPE_FLOAT1",
 		"D3DDECLTYPE_FLOAT2",
@@ -584,6 +588,7 @@ void m_IDirect3DDevice9::identifyStride(IDirect3DVertexDeclaration9* ppDecl, int
 
 	std::string debugStr = "";
 	int dynStride = 0;
+	bool foundBlend = false;
 	for (int ii = 0; ii < numElements - 1; ii++) {
 		int typei = 0;
 		int usei = 0;
@@ -599,10 +604,13 @@ void m_IDirect3DDevice9::identifyStride(IDirect3DVertexDeclaration9* ppDecl, int
 		int amount = typeSize[typei];
 		if (amount == 0) goto CantIdentify;
 
+		if (!foundBlend && usei == 2) {
+			*blendOffset = dynStride;
+			foundBlend = true;
+		}
 		dynStride += amount;
 		if (ii == 0) {
 			if (typei == 2 || typei == 3) *postype = 0;
-			//else goto TODOType;
 			else *postype = 1;
 		}
 
@@ -714,15 +722,20 @@ HRESULT m_IDirect3DDevice9::DrawIndexedPrimitive(THIS_ D3DPRIMITIVETYPE Type, IN
 			
 		// TriangleStrip Contd.
 		int dataStride = -1;
+		int blendOffset = -1;
 		int posType = -1;
 		char typeString[512];
-		identifyStride(vertexType, &dataStride, &posType, typeString);
+		identifyStride(vertexType, &dataStride, &posType, typeString, &blendOffset);
 		if (dataStride == -1 || posType == 1) {
 			// UNIDENTIFIED VERTEX TYPE
 			delete indices;
 			goto EndDrawIndexedPrimitive;
 		}
-
+		if (blendOffset == -1) {
+			// Static Mesh
+			delete indices;
+			goto EndDrawIndexedPrimitive;
+		}
 		if (dataStride != bufferStride) {
 			Log() << typeString;
 			Log() << " WARN: Stride Mismatch: Guessed " << dataStride << " vs  Stride " << bufferStride;
@@ -731,7 +744,7 @@ HRESULT m_IDirect3DDevice9::DrawIndexedPrimitive(THIS_ D3DPRIMITIVETYPE Type, IN
 			goto EndDrawIndexedPrimitive;*/
 			dataStride = bufferStride; // case when vdata is split across many buffers
 		}
-
+	
 		int vertexStartInBytes = dataStride * (MinVertexIndex);
 		int vertexRange = (maxInd - minInd) + 1;
 		int vertexRangeInBytes = dataStride * vertexRange;
@@ -751,43 +764,6 @@ HRESULT m_IDirect3DDevice9::DrawIndexedPrimitive(THIS_ D3DPRIMITIVETYPE Type, IN
 		VOID* verts = malloc(vertexRangeInBytes);
 		memcpy(verts, pVoid, vertexRangeInBytes);
 		validVertex->Unlock();
-
-		FLOAT * vlist = (FLOAT*)malloc(sizeof(FLOAT) * 4 * NumVertices);
-		for (int jj = 0; jj < vertexRange; jj++) {
-			FLOAT* casted = NULL;
-			VOID* offset = (char*)verts + dataStride * jj;
-			if (posType == 0) {
-				casted = (FLOAT*)offset;
-			}
-			else {
-				casted = (FLOAT*)malloc(sizeof(FLOAT) * 3);
-				D3DXFloat16To32Array(casted, (D3DXFLOAT16*)offset, 3);
-			}
-
-			FLOAT vert[] = { casted[0], casted[1], casted[2] };
-			vlist[4 * jj + 0] = casted[0];
-			vlist[4 * jj + 1] = casted[1];
-			vlist[4 * jj + 2] = casted[2];
-			vlist[4 * jj + 3] = 0;
-
-			if (posType == 1) delete casted;
-		}
-		//delete vlist;
-
-		//FLOAT* pVerts = NULL;
-		getProcessedVerts(&vlist, MinVertexIndex, NumVertices); // dont forget to clear pVerts
-		//if (pVerts != NULL) {
-		/*
-		if (true) {
-			Log() << "Printing Pverts";
-			for (int ii = 0; ii < NumVertices; ii++) {
-				sprintf(buff, "%f %f %f %f", vlist[ii * 4], vlist[ii * 4 + 1], vlist[ii * 4 + 2], vlist[ii * 4 + 3]);
-				Log() << buff;
-			}
-			//delete pVerts;
-		}
-		*/
-		
 		
 		std::ofstream myfile;
 		sprintf(buff, "meshes/frame%d_strip_s%d_%d.obj", frameCounter, dataStride, primCount);
@@ -797,31 +773,28 @@ HRESULT m_IDirect3DDevice9::DrawIndexedPrimitive(THIS_ D3DPRIMITIVETYPE Type, IN
 		sprintf(buff, "# STRIDE %d  BUFFSTRIDE %d  DTYPE %d\n", dataStride, bufferStride, posType);
 		myfile << buff;
 
-		myfile << "# Constants:";
+		myfile << "# Constants:\n";
 		for (int reg = 0; reg < vsConstants.size(); reg++) {
 			D3DXVECTOR4 vec = vsConstants[reg];
 			sprintf(buff, "# %d %f %f %f %f\n", reg, vec.x, vec.y, vec.z, vec.w);
 			myfile << buff;
-			reg++;
 		}
 		myfile << typeString;
 
 		for (int jj = 0; jj < vertexRange; jj++) {
 			FLOAT* casted = NULL;
-			VOID* offset = (char*)verts + dataStride * jj;
+			VOID* vertexPointer = (char*)verts + dataStride * jj;
+			unsigned char* blendInds = (unsigned char*)vertexPointer + blendOffset;
+			
 			if (posType == 0) {
-				casted = (FLOAT*)offset;
+				casted = (FLOAT*)vertexPointer;
 			}
 			else {
 				casted = (FLOAT*)malloc(sizeof(FLOAT) * 3);
-				D3DXFloat16To32Array(casted, (D3DXFLOAT16*) offset, 3);
+				D3DXFloat16To32Array(casted, (D3DXFLOAT16*)vertexPointer, 3);
 			}
 
 			float vert[] = { casted[0], casted[1], casted[2] };
-			/*D3DXVECTOR4 vout(0, 0, 0, 0);
-			D3DXVECTOR4 vin(vert[0], vert[1], vert[2], 1);
-			D3DXMATRIX mat(drawTransform);
-			D3DXVec4Transform(&vout, &vin, &mat);*/
 			D3DXVECTOR4 vout = vert;
 			
 			sprintf(buff, "# w %f\n", vout.w);
@@ -833,10 +806,10 @@ HRESULT m_IDirect3DDevice9::DrawIndexedPrimitive(THIS_ D3DPRIMITIVETYPE Type, IN
 				vert[2]);
 			myfile << buff;
 
-			sprintf(buff, "# p %f %f %f\n",
-				vlist[4 * jj + 0],
-				vlist[4 * jj + 1],
-				vlist[4 * jj + 2]);
+			sprintf(buff, "# blend %d %d %d\n",
+				(int) blendInds[0],
+				(int) blendInds[1],
+				(int) blendInds[2]);
 			myfile << buff;
 
 			sprintf(buff, "v %f %f %f\n",
@@ -868,11 +841,10 @@ HRESULT m_IDirect3DDevice9::DrawIndexedPrimitive(THIS_ D3DPRIMITIVETYPE Type, IN
 		}
 		myfile.close();
 
-		delete vlist;
 		delete verts;
 		delete indices;
 
-		//MessageBox(NULL, L"TriangleStrip Once", L"DEBUG", MB_OK);
+		MessageBox(NULL, L"TriangleStrip Once", L"DEBUG", MB_OK);
 	}
 	//else if (ingame && NumVertices > 100 && Type == D3DPT_TRIANGLELIST && frameCounter % 500 == 0) {
 	if (false) {
@@ -907,7 +879,8 @@ HRESULT m_IDirect3DDevice9::DrawIndexedPrimitive(THIS_ D3DPRIMITIVETYPE Type, IN
 		int dataStride = -1;
 		int posType = -1;
 		char typeString[512];
-		identifyStride(vertexType, &dataStride, &posType, typeString);
+		int blendOffset = -1;
+		identifyStride(vertexType, &dataStride, &posType, typeString, &blendOffset);
 		if (dataStride == -1 || posType == -1) {
 			// UNIDENTIFIED VERTEX TYPE
 			// TODO: SHORT2 positions 
@@ -936,20 +909,6 @@ HRESULT m_IDirect3DDevice9::DrawIndexedPrimitive(THIS_ D3DPRIMITIVETYPE Type, IN
 		memcpy(verts, pVoid, vertexRangeInBytes);
 		validVertex->Unlock();
 
-
-		FLOAT * vlist = (FLOAT*)malloc(sizeof(FLOAT) * 4 * NumVertices);
-		for (int jj = 0; jj < vertexRange; jj++) {
-			VOID* offset = (char*)verts + dataStride * jj;
-			FLOAT* casted = (FLOAT*)offset; // only valid for first ~3 inds
-			vlist[4 * jj + 0] = casted[0];
-			vlist[4 * jj + 1] = casted[1];
-			vlist[4 * jj + 2] = casted[2];
-			vlist[4 * jj + 3] = 0;
-		}
-
-		getProcessedVerts(&vlist, MinVertexIndex, NumVertices); // dont forget to clear pVerts
-
-
 		std::ofstream myfile;
 		sprintf(buff, "meshes/frame%d_list_s%d_%d.obj", frameCounter, dataStride, primCount);
 		myfile.open(buff);
@@ -964,12 +923,6 @@ HRESULT m_IDirect3DDevice9::DrawIndexedPrimitive(THIS_ D3DPRIMITIVETYPE Type, IN
 		for (int jj = 0; jj < vertexRange; jj++) {
 			VOID* offset = (char*)verts + dataStride * jj;
 			FLOAT* casted = (FLOAT*)offset; // only valid for first ~3 inds
-
-			sprintf(buff, "# p %f %f %f\n",
-				vlist[4 * jj + 0],
-				vlist[4 * jj + 1],
-				vlist[4 * jj + 2]);
-			myfile << buff;
 
 			sprintf(buff, "v %f %f %f\n",
 				casted[0],
@@ -987,7 +940,6 @@ HRESULT m_IDirect3DDevice9::DrawIndexedPrimitive(THIS_ D3DPRIMITIVETYPE Type, IN
 		}
 		myfile.close();
 
-		delete vlist;
 		delete indices;
 		delete verts;
 	}
@@ -1110,7 +1062,7 @@ IDirect3DVertexBuffer9* validVertex = NULL;
 int bufferStride = 0;
 HRESULT m_IDirect3DDevice9::SetStreamSource(THIS_ UINT StreamNumber, IDirect3DVertexBuffer9* pStreamData, UINT OffsetInBytes, UINT Stride)
 {
-	Log() << "SetStream " << StreamNumber;
+	//Log() << "SetStream " << StreamNumber;
 	if (pStreamData)
 	{
 		if (StreamNumber == 0) bufferStride = Stride;
@@ -1383,10 +1335,10 @@ HRESULT m_IDirect3DDevice9::SetVertexShaderConstantF(THIS_ UINT StartRegister, C
 	for (int ii = 0; ii < Vector4fCount; ii++) {
 		int offset = 4 * ii;
 		
-		vsConstants[StartRegister].x = pConstantData[offset + 0];
-		vsConstants[StartRegister].y = pConstantData[offset + 1];
-		vsConstants[StartRegister].z = pConstantData[offset + 2];
-		vsConstants[StartRegister].w = pConstantData[offset + 3];
+		vsConstants[StartRegister + ii].x = pConstantData[offset + 0];
+		vsConstants[StartRegister + ii].y = pConstantData[offset + 1];
+		vsConstants[StartRegister + ii].z = pConstantData[offset + 2];
+		vsConstants[StartRegister + ii].w = pConstantData[offset + 3];
 	}
 
 	return ProxyInterface->SetVertexShaderConstantF(StartRegister, pConstantData, Vector4fCount);
