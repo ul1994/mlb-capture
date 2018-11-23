@@ -767,73 +767,32 @@ HRESULT m_IDirect3DDevice9::DrawIndexedPrimitive(THIS_ D3DPRIMITIVETYPE Type, IN
 		memcpy(verts, pVoid, vertexRangeInBytes);
 		validVertex->Unlock();
 		
-		std::ofstream myfile;
 		sprintf(buff, "meshes/frame%d_strip_o%d_s%d_%d.obj", frameCounter, objCounter, dataStride, primCount);
-		myfile.open(buff);
-
-		// debug info
-		sprintf(buff, "# STRIDE %d  BUFFSTRIDE %d  DTYPE %d\n", dataStride, bufferStride, posType);
-		myfile << buff;
-
-		myfile << typeString;
-
-		for (int jj = 0; jj < vertexRange; jj++) {
-			FLOAT* casted = NULL;
-			VOID* vertexPointer = (char*)verts + dataStride * jj;
-			unsigned char* blendInds = (unsigned char*)vertexPointer + blendOffset;
-			
-			if (posType == 0) {
-				casted = (FLOAT*)vertexPointer;
-			}
-			else {
-				casted = (FLOAT*)malloc(sizeof(FLOAT) * 3);
-				D3DXFloat16To32Array(casted, (D3DXFLOAT16*)vertexPointer, 3);
-			}
-
-			float vert[] = { casted[0], casted[1], casted[2] };
-			D3DXVECTOR4 vout = vert;
-			
-			sprintf(buff, "# w %f\n", vout.w);
-			myfile << buff;
-
-			sprintf(buff, "# o %f %f %f\n",
-				vert[0],
-				vert[1],
-				vert[2]);
-			myfile << buff;
-
-			sprintf(buff, "# blend %d %d %d\n",
-				(int) blendInds[0],
-				(int) blendInds[1],
-				(int) blendInds[2]);
-			myfile << buff;
-
-			sprintf(buff, "v %f %f %f\n",
-				vout.x,
-				vout.y,
-				vout.z);
-			myfile << buff;
-
-			if (posType == 1) delete casted;
-		}
-
+		
+		// convert indicies, primCount from strip to list
+		int listCount = 0;
+		short* listinds = new short[2 * 3 * primCount];
 		for (int ii = 2; ii < primCount; ii ++) {
 			if (ii % 2 == 0) {
-				sprintf(buff, "f %d %d %d\n",
-					indices[ii - 2] - MinVertexIndex + 1,
-					indices[ii - 1] - MinVertexIndex + 1,
-					indices[ii - 0] - MinVertexIndex + 1);
+				listinds[3 * (ii - 2) + 0] = indices[ii - 2];
+				listinds[3 * (ii - 2) + 1] = indices[ii - 1];
+				listinds[3 * (ii - 2) + 2] = indices[ii - 0];
 			}
 			else {
 				// reverse for alternating triangles
-				sprintf(buff, "f %d %d %d\n",
-					indices[ii - 2] - MinVertexIndex + 1,
-					indices[ii - 0] - MinVertexIndex + 1,
-					indices[ii - 1] - MinVertexIndex + 1);
+				listinds[3 * (ii - 2) + 0] = indices[ii - 2];
+				listinds[3 * (ii - 2) + 1] = indices[ii - 0];
+				listinds[3 * (ii - 2) + 2] = indices[ii - 1];
 			}
-			myfile << buff;
+			listCount++;
 		}
-		myfile.close();
+
+		writeObj(buff, typeString,
+			verts, dataStride, vertexRange,
+			listinds, MinVertexIndex, listCount,
+			blendOffset, posType);
+
+		delete listinds;
 
 		delete verts;
 		delete indices;
