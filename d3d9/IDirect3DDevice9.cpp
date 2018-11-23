@@ -120,6 +120,7 @@ HRESULT m_IDirect3DDevice9::CreateDepthStencilSurface(THIS_ UINT Width, UINT Hei
 }
 
 std::map<IDirect3DIndexBuffer9*, int> indexBufferSize;
+std::map<IDirect3DIndexBuffer9*, D3DFORMAT> indexBufferType;
 HRESULT m_IDirect3DDevice9::CreateIndexBuffer(THIS_ UINT Length, DWORD Usage, D3DFORMAT Format, D3DPOOL Pool, IDirect3DIndexBuffer9** ppIndexBuffer, HANDLE* pSharedHandle)
 {
 	HRESULT hr = ProxyInterface->CreateIndexBuffer(Length, Usage, Format, Pool, ppIndexBuffer, pSharedHandle);
@@ -127,6 +128,8 @@ HRESULT m_IDirect3DDevice9::CreateIndexBuffer(THIS_ UINT Length, DWORD Usage, D3
 	if (SUCCEEDED(hr) && ppIndexBuffer)
 	{
 		*ppIndexBuffer = ProxyAddressLookupTable->FindAddress<m_IDirect3DIndexBuffer9>(*ppIndexBuffer);
+		indexBufferType[*ppIndexBuffer] = Format;
+		indexBufferSize[*ppIndexBuffer] = Length;
 	}
 
 	return hr;
@@ -692,14 +695,19 @@ HRESULT m_IDirect3DDevice9::DrawIndexedPrimitive(THIS_ D3DPRIMITIVETYPE Type, IN
 		ingame = true;
 	}
 
+	//Log() << sizeof(unsigned short) << "    " << sizeof(UINT);
+
 	if (ingame && NumVertices > 100 && Type == D3DPT_TRIANGLESTRIP && frameCounter % 500 == 0) {
-		Log() << "TriangleStrip  PCnt " << primCount << "  Nvs " << NumVertices << "  SInd " << startIndex << "  MinV "<< MinVertexIndex;
+		if (BaseVertexIndex > 0) {
+			Log() << objCounter << " TriangleStrip  PCnt " << primCount << "  Nvs " << NumVertices << "  SInd " << startIndex << "  MinV " << MinVertexIndex << "  BaseV " << BaseVertexIndex;
+		}
 
 		IDirect3DIndexBuffer9* localIndex = NULL;
 		GetIndices(&localIndex);
 
 		VOID * pVoid;
 		char buff[256];
+		
 		int startInBytes = sizeof(short) * startIndex;
 		int range = primCount +2;
 		int rangeInBytes = sizeof(short) * range;
@@ -732,12 +740,12 @@ HRESULT m_IDirect3DDevice9::DrawIndexedPrimitive(THIS_ D3DPRIMITIVETYPE Type, IN
 			delete indices;
 			goto EndDrawIndexedPrimitive;
 		}
-		if (blendOffset == -1) {
-			// non-blended mesh
-			Log() << typeString;
-			delete indices;
-			goto EndDrawIndexedPrimitive;
-		}
+		//if (blendOffset == -1) {
+		//	// non-blended mesh
+		//	Log() << typeString;
+		//	delete indices;
+		//	goto EndDrawIndexedPrimitive;
+		//}
 		if (dataStride != bufferStride) {
 			Log() << typeString;
 			Log() << " WARN: Stride Mismatch: Guessed " << dataStride << " vs  Stride " << bufferStride;
@@ -747,10 +755,13 @@ HRESULT m_IDirect3DDevice9::DrawIndexedPrimitive(THIS_ D3DPRIMITIVETYPE Type, IN
 			dataStride = bufferStride; // case when vdata is split across many buffers
 		}
 	
-		int vertexStartInBytes = dataStride * (MinVertexIndex);
+		if (BaseVertexIndex > 0) {
+			Log() << "   Min " << minInd << "   Max " << maxInd;
+		}
+		int vertexStartInBytes = dataStride * (MinVertexIndex + BaseVertexIndex);
 		int vertexRange = (maxInd - minInd) + 1;
 		int vertexRangeInBytes = dataStride * vertexRange;
-		if (vertexRange != NumVertices) {
+		if (vertexRange != NumVertices || minInd < 0) {
 			Log() << "! Index Range Inconsistent";
 			Log() << "  " << indices[0] << " " << indices[range - 1];
 			Log() << "  " << maxInd << " " << minInd << " " << vertexRange << " " << dataStride;
@@ -770,8 +781,9 @@ HRESULT m_IDirect3DDevice9::DrawIndexedPrimitive(THIS_ D3DPRIMITIVETYPE Type, IN
 		sprintf(buff, "meshes/frame%d_strip_o%d_s%d_%d.obj", frameCounter, objCounter, dataStride, primCount);
 		
 		// convert indicies, primCount from strip to list
+		// FIXME: indices go up to primCount
 		int listCount = 0;
-		short* listinds = new short[2 * 3 * primCount];
+		short* listinds = new short[3 * primCount];
 		for (int ii = 2; ii < primCount; ii ++) {
 			if (ii % 2 == 0) {
 				listinds[3 * (ii - 2) + 0] = indices[ii - 2];
@@ -799,8 +811,8 @@ HRESULT m_IDirect3DDevice9::DrawIndexedPrimitive(THIS_ D3DPRIMITIVETYPE Type, IN
 
 		//MessageBox(NULL, L"TriangleStrip Once", L"DEBUG", MB_OK);
 	}
-	else if (ingame && NumVertices > 100 && Type == D3DPT_TRIANGLELIST && frameCounter % 500 == 0) {
-	//if (false) {
+	//else if (ingame && NumVertices > 100 && Type == D3DPT_TRIANGLELIST && frameCounter % 500 == 0) {
+	if (false) {
 		Log() << "TriangleList   PCnt " << primCount << "  Nvs " << NumVertices << "  SInd " << startIndex << "  MinV " << MinVertexIndex << "  BaseV " << BaseVertexIndex;
 
 		IDirect3DIndexBuffer9* localIndex = NULL;
@@ -870,7 +882,6 @@ HRESULT m_IDirect3DDevice9::DrawIndexedPrimitive(THIS_ D3DPRIMITIVETYPE Type, IN
 		validVertex->Unlock();
 
 		sprintf(buff, "meshes/frame%d_list_o%d_s%d_%d.obj", frameCounter, objCounter, dataStride, primCount);
-		objCounter++;
 
 		writeObj(buff, typeString, 
 			verts, dataStride, vertexRange,
@@ -881,8 +892,8 @@ HRESULT m_IDirect3DDevice9::DrawIndexedPrimitive(THIS_ D3DPRIMITIVETYPE Type, IN
 		delete verts;
 	}
 	
-	objCounter++;
 EndDrawIndexedPrimitive:
+	objCounter++;
 	return ProxyInterface->DrawIndexedPrimitive(Type, BaseVertexIndex, MinVertexIndex, NumVertices, startIndex, primCount);
 }
 
@@ -909,7 +920,6 @@ void m_IDirect3DDevice9::writeObj(char* fileName, char* typeDetail,
 	for (int jj = 0; jj < vsize; jj++) {
 		FLOAT* casted = NULL;
 		VOID* vertexPointer = (char*)vdata + vstride * jj;
-		unsigned char* blendInds = (unsigned char*)vertexPointer + blendOffset;
 
 		if (vtype == 0) {
 			casted = (FLOAT*)vertexPointer;
@@ -919,17 +929,24 @@ void m_IDirect3DDevice9::writeObj(char* fileName, char* typeDetail,
 			D3DXFloat16To32Array(casted, (D3DXFLOAT16*)vertexPointer, 3);
 		}
 
-		sprintf(buff, "# blend %d %d %d\n",
-			(int)blendInds[0],
-			(int)blendInds[1],
-			(int)blendInds[2]);
-		myfile << buff;
-
+		if (blendOffset != -1) {
+			unsigned char* blendInds = (unsigned char*)vertexPointer + blendOffset;
+			sprintf(buff, "# blend %d %d %d\n",
+				(int)blendInds[0],
+				(int)blendInds[1],
+				(int)blendInds[2]);
+			myfile << buff;
+		}
+		
 		sprintf(buff, "v %f %f %f\n",
 			casted[0],
 			casted[1],
 			casted[2]);
 		myfile << buff;
+	}
+
+	if (idata[0] - mini + 1 < 0) {
+		Log() << "    " << "MinV " << mini << "   I " << idata[0];
 	}
 
 	for (int ii = 0; ii < 3 * isize; ii += 3) {
@@ -978,7 +995,7 @@ HRESULT m_IDirect3DDevice9::BeginScene()
 	//Log() << "BeginScene";
 	frameCounter += 1;
 	objCounter = 0;
-	Log() << "Frame " << frameCounter;
+	//Log() << "Frame " << frameCounter;
 	if (ingame && frameCounter % 500 == 1) {
 		MessageBox(NULL, L"One Frame", L"DEBUG", MB_OK);
 	}
