@@ -155,8 +155,4 @@ public:
 		IDirect3DVertexDeclaration9* ppDecl, int *stride, int *postype, char* typeString,
 		int* blendOffset);
 	void getProcessedVerts(FLOAT** pVerts, int MinVertexIndex, int VertexCount);
-
-	void writeObj(char* fileName, char* typeDetail,
-		std::vector<int>* blendinds,
-		std::vector<FLOAT>* verts, std::vector<int>* inds);
 };
