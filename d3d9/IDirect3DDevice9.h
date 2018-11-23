@@ -157,6 +157,7 @@ public:
 	void getProcessedVerts(FLOAT** pVerts, int MinVertexIndex, int VertexCount);
 
 	void writeObj(char* fileName, char* typeDetail,
-		std::vector<int>* blendinds,
-		std::vector<FLOAT>* verts, std::vector<int>* inds);
+		VOID* vdata, int vstride, int vsize,
+		short* idata, int mini, int isize,
+		int blendOffset, int vtype);
 };

@@ -775,12 +775,6 @@ HRESULT m_IDirect3DDevice9::DrawIndexedPrimitive(THIS_ D3DPRIMITIVETYPE Type, IN
 		sprintf(buff, "# STRIDE %d  BUFFSTRIDE %d  DTYPE %d\n", dataStride, bufferStride, posType);
 		myfile << buff;
 
-		myfile << "# Constants:\n";
-		for (int reg = 0; reg < vsConstants.size(); reg++) {
-			D3DXVECTOR4 vec = vsConstants[reg];
-			sprintf(buff, "# %d %f %f %f %f\n", reg, vec.x, vec.y, vec.z, vec.w);
-			myfile << buff;
-		}
 		myfile << typeString;
 
 		for (int jj = 0; jj < vertexRange; jj++) {
@@ -918,52 +912,13 @@ HRESULT m_IDirect3DDevice9::DrawIndexedPrimitive(THIS_ D3DPRIMITIVETYPE Type, IN
 		memcpy(verts, pVoid, vertexRangeInBytes);
 		validVertex->Unlock();
 
-		std::ofstream myfile;
 		sprintf(buff, "meshes/frame%d_list_o%d_s%d_%d.obj", frameCounter, objCounter, dataStride, primCount);
 		objCounter++;
-		myfile.open(buff);
 
-		sprintf(buff, "# STRIDE %d  BUFFSTRIDE %d  DTYPE %d\n", dataStride, bufferStride, posType);
-		myfile << buff;
-
-		myfile << typeString;
-
-		// NOTE: strided skipping is resilient to inconsistent vertex fields
-		//   unless stride itself is incorrect!
-		for (int jj = 0; jj < vertexRange; jj++) {
-			FLOAT* casted = NULL;
-			VOID* vertexPointer = (char*)verts + dataStride * jj;
-			unsigned char* blendInds = (unsigned char*)vertexPointer + blendOffset;
-
-			if (posType == 0) {
-				casted = (FLOAT*)vertexPointer;
-			}
-			else {
-				casted = (FLOAT*)malloc(sizeof(FLOAT) * 3);
-				D3DXFloat16To32Array(casted, (D3DXFLOAT16*)vertexPointer, 3);
-			}
-
-			sprintf(buff, "# blend %d %d %d\n",
-				(int)blendInds[0],
-				(int)blendInds[1],
-				(int)blendInds[2]);
-			myfile << buff;
-
-			sprintf(buff, "v %f %f %f\n",
-				casted[0],
-				casted[1],
-				casted[2]);
-			myfile << buff;
-		}
-
-		for (int ii = 0; ii < 3 * primCount; ii +=3) {
-			sprintf(buff, "f %d %d %d\n",
-				indices[ii + 0] - MinVertexIndex + 1,
-				indices[ii + 1] - MinVertexIndex + 1,
-				indices[ii + 2] - MinVertexIndex + 1);
-			myfile << buff;
-		}
-		myfile.close();
+		writeObj(buff, typeString, 
+			verts, dataStride, vertexRange,
+			indices, MinVertexIndex, primCount,
+			blendOffset, posType);
 
 		delete indices;
 		delete verts;
@@ -972,6 +927,62 @@ HRESULT m_IDirect3DDevice9::DrawIndexedPrimitive(THIS_ D3DPRIMITIVETYPE Type, IN
 	objCounter++;
 EndDrawIndexedPrimitive:
 	return ProxyInterface->DrawIndexedPrimitive(Type, BaseVertexIndex, MinVertexIndex, NumVertices, startIndex, primCount);
+}
+
+void m_IDirect3DDevice9::writeObj(char* fileName, char* typeDetail,
+	VOID* vdata, int vstride, int vsize,
+	short* idata, int mini, int isize, 
+	int blendOffset, int vtype) {
+	char buff[512];
+
+	std::ofstream myfile;
+	myfile.open(fileName);
+
+	myfile << "# Constants:\n";
+	for (int reg = 0; reg < vsConstants.size(); reg++) {
+		D3DXVECTOR4 vec = vsConstants[reg];
+		sprintf(buff, "# %d %f %f %f %f\n", reg, vec.x, vec.y, vec.z, vec.w);
+		myfile << buff;
+	}
+
+	myfile << "# Typedef:\n";
+	myfile << std::string(typeDetail);
+
+	myfile << "# Data:\n";
+	for (int jj = 0; jj < vsize; jj++) {
+		FLOAT* casted = NULL;
+		VOID* vertexPointer = (char*)vdata + vstride * jj;
+		unsigned char* blendInds = (unsigned char*)vertexPointer + blendOffset;
+
+		if (vtype == 0) {
+			casted = (FLOAT*)vertexPointer;
+		}
+		else {
+			casted = (FLOAT*)malloc(sizeof(FLOAT) * 3);
+			D3DXFloat16To32Array(casted, (D3DXFLOAT16*)vertexPointer, 3);
+		}
+
+		sprintf(buff, "# blend %d %d %d\n",
+			(int)blendInds[0],
+			(int)blendInds[1],
+			(int)blendInds[2]);
+		myfile << buff;
+
+		sprintf(buff, "v %f %f %f\n",
+			casted[0],
+			casted[1],
+			casted[2]);
+		myfile << buff;
+	}
+
+	for (int ii = 0; ii < 3 * isize; ii += 3) {
+		sprintf(buff, "f %d %d %d\n",
+			idata[ii + 0] - mini + 1,
+			idata[ii + 1] - mini + 1,
+			idata[ii + 2] - mini + 1);
+		myfile << buff;
+	}
+	myfile.close();
 }
 
 HRESULT m_IDirect3DDevice9::DrawIndexedPrimitiveUP(D3DPRIMITIVETYPE PrimitiveType, UINT MinIndex, UINT NumVertices, UINT PrimitiveCount, CONST void *pIndexData, D3DFORMAT IndexDataFormat, CONST void *pVertexStreamZeroData, UINT VertexStreamZeroStride)
