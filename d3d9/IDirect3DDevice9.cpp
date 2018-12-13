@@ -60,6 +60,56 @@ HRESULT m_IDirect3DDevice9::Reset(D3DPRESENT_PARAMETERS *pPresentationParameters
 
 HRESULT m_IDirect3DDevice9::EndScene()
 {
+	if (ingame && frameCounter % 250 == 0) {
+		LPBYTE *shots = nullptr;
+		D3DLOCKED_RECT rc;
+		IDirect3DSurface9 *surface = nullptr;
+		HRESULT hr;
+		UINT pitch;
+		D3DDISPLAYMODE dmode;
+
+		hr = GetDisplayMode(0, &dmode);
+		if (!SUCCEEDED(hr)) {
+			Log() << "No display mode";
+		}
+		Log() << dmode.Width << ", " << dmode.Height;
+
+		hr = CreateOffscreenPlainSurface(2560, 1440,
+			D3DFMT_A8R8G8B8, D3DPOOL_SYSTEMMEM, &surface, NULL);
+		if (!SUCCEEDED(hr)) {
+			Log() << "Could not create";
+		}
+		hr = GetFrontBufferData(0, surface);
+		if (!SUCCEEDED(hr)) {
+			Log() << "No front buffer";
+		}
+
+		char buff[256];
+		std::string spath = "C:\\Users\\ul1994\\dev\\DirectX-Wrappers\\d3d9\\captures\\";
+		sprintf(buff, "%s%d.jpg", spath.c_str(), frameCounter);
+		wchar_t wtext[256];
+		mbstowcs(wtext, buff, strlen(buff) + 1);
+		LPWSTR ptr = wtext;
+
+		RECT window;
+		int topbuff = 40;
+		window.bottom = 768 + topbuff;
+		window.top = 0;
+		window.left = 0;
+		window.right = 1024;
+
+		hr = D3DXSaveSurfaceToFileW(
+			ptr,
+			D3DXIFF_JPG, surface, NULL, &window);
+
+		if (!SUCCEEDED(hr)) {
+			Log() << "SS Err";
+		}
+		surface->Release();
+
+		//MessageBox(NULL, L"One frame ", L"DEBUG", MB_OK);
+
+	}
 	return ProxyInterface->EndScene();
 }
 
@@ -697,7 +747,10 @@ HRESULT m_IDirect3DDevice9::DrawIndexedPrimitive(THIS_ D3DPRIMITIVETYPE Type, IN
 
 	//Log() << sizeof(unsigned short) << "    " << sizeof(UINT);
 
-	if (ingame && NumVertices > 100 && Type == D3DPT_TRIANGLESTRIP && frameCounter % 500 == 0) {
+	if (ingame && NumVertices > 100 
+		&& Type == D3DPT_TRIANGLESTRIP 
+		&& frameCounter % 250 == 0) {
+
 		if (BaseVertexIndex > 0) {
 			Log() << objCounter << " TriangleStrip  PCnt " << primCount << "  Nvs " << NumVertices << "  SInd " << startIndex << "  MinV " << MinVertexIndex << "  BaseV " << BaseVertexIndex;
 		}
@@ -755,9 +808,9 @@ HRESULT m_IDirect3DDevice9::DrawIndexedPrimitive(THIS_ D3DPRIMITIVETYPE Type, IN
 			dataStride = bufferStride; // case when vdata is split across many buffers
 		}
 	
-		if (BaseVertexIndex > 0) {
+		/*if (BaseVertexIndex > 0) {
 			Log() << "   Min " << minInd << "   Max " << maxInd;
-		}
+		}*/
 		int vertexStartInBytes = dataStride * (MinVertexIndex + BaseVertexIndex);
 		int vertexRange = (maxInd - minInd) + 1;
 		int vertexRangeInBytes = dataStride * vertexRange;
@@ -992,13 +1045,8 @@ HRESULT m_IDirect3DDevice9::DrawPrimitiveUP(D3DPRIMITIVETYPE PrimitiveType, UINT
 
 HRESULT m_IDirect3DDevice9::BeginScene()
 {
-	//Log() << "BeginScene";
 	frameCounter += 1;
 	objCounter = 0;
-	//Log() << "Frame " << frameCounter;
-	if (ingame && frameCounter % 500 == 1) {
-		MessageBox(NULL, L"One Frame", L"DEBUG", MB_OK);
-	}
 	return ProxyInterface->BeginScene();
 }
 
@@ -1166,6 +1214,41 @@ HRESULT m_IDirect3DDevice9::SetClipPlane(DWORD Index, CONST float *pPlane)
 {
 	return ProxyInterface->SetClipPlane(Index, pPlane);
 }
+//
+//HRESULT SavePixelsToFile32bppPBGRA(UINT width, UINT height, UINT stride, LPBYTE pixels, LPWSTR filePath, const GUID &format)
+//{
+//	if (!filePath || !pixels)
+//		return E_INVALIDARG;
+//
+//	HRESULT hr = S_OK;
+//	IWICImagingFactory *factory = nullptr;
+//	IWICBitmapEncoder *encoder = nullptr;
+//	IWICBitmapFrameEncode *frame = nullptr;
+//	IWICStream *stream = nullptr;
+//	GUID pf = GUID_WICPixelFormat32bppPBGRA;
+//	BOOL coInit = CoInitialize(nullptr);
+//
+//	HRCHECK(CoCreateInstance(CLSID_WICImagingFactory, nullptr, CLSCTX_INPROC_SERVER, IID_PPV_ARGS(&factory)));
+//	HRCHECK(factory->CreateStream(&stream));
+//	HRCHECK(stream->InitializeFromFilename(filePath, GENERIC_WRITE));
+//	HRCHECK(factory->CreateEncoder(format, nullptr, &encoder));
+//	HRCHECK(encoder->Initialize(stream, WICBitmapEncoderNoCache));
+//	HRCHECK(encoder->CreateNewFrame(&frame, nullptr)); // we don't use options here
+//	HRCHECK(frame->Initialize(nullptr)); // we dont' use any options here
+//	HRCHECK(frame->SetSize(width, height));
+//	HRCHECK(frame->SetPixelFormat(&pf));
+//	HRCHECK(frame->WritePixels(height, stride, stride * height, pixels));
+//	HRCHECK(frame->Commit());
+//	HRCHECK(encoder->Commit());
+//
+//cleanup:
+//	RELEASE(stream);
+//	RELEASE(frame);
+//	RELEASE(encoder);
+//	RELEASE(factory);
+//	if (coInit) CoUninitialize();
+//	return hr;
+//}
 
 HRESULT m_IDirect3DDevice9::Clear(DWORD Count, CONST D3DRECT *pRects, DWORD Flags, D3DCOLOR Color, float Z, DWORD Stencil)
 {

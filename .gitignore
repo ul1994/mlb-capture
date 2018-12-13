@@ -1,3 +1,7 @@
+**/captures/*
+**/outputs/*
+*.png
+
 # Compiled Object files
 *.slo
 *.lo
